@@ -28,6 +28,8 @@
             --text-color: var(--texto-comprobante);
             --card-bg: var(--blanco);
             --header-bg: var(--blanco);
+            --eliminar: #ff4444;
+            --eliminar-hover: #cc0000;
         }
 
         /* Modo oscuro */
@@ -42,6 +44,8 @@
             --texto-comprobante: #f0f0f0;
             --fondo-detalle: #2a3730;
             --fondo-datos-empresa: #1e2a24;
+            --eliminar: #ff6666;
+            --eliminar-hover: #ff3333;
         }
 
         * {
@@ -111,6 +115,30 @@
             background-color: var(--gris-fondo-secundario);
         }
 
+        /* Botón vaciar carrito en inicio */
+        #vaciar-carrito-inicio {
+            position: absolute;
+            top: 1rem;
+            right: 4rem; /* al lado del botón de modo oscuro */
+            background-color: var(--eliminar);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 0.3rem;
+            z-index: 100;
+        }
+        #vaciar-carrito-inicio:hover {
+            background-color: var(--eliminar-hover);
+        }
+        #vaciar-carrito-inicio.visible {
+            display: flex;
+        }
+
         .container {
             max-width: 1200px;
             margin: 1rem auto;
@@ -133,6 +161,42 @@
             border-bottom: 2px solid var(--gris-borde);
             padding-bottom: 0.3rem;
             font-size: 1.3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-accion {
+            background-color: var(--gris-fondo-secundario);
+            color: var(--text-color);
+            border: 1px solid var(--gris-borde);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .btn-accion:hover {
+            background-color: var(--gris-hover-secundario);
+        }
+        .btn-eliminar {
+            background-color: var(--eliminar);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 0.5rem;
+        }
+        .btn-eliminar:hover {
+            background-color: var(--eliminar-hover);
         }
 
         .titulo-locales {
@@ -390,6 +454,25 @@
             border: 1px dashed var(--gris-linea-punteada);
         }
 
+        .item-resumen {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid var(--gris-borde);
+        }
+        .item-resumen:last-child {
+            border-bottom: none;
+        }
+        .item-info {
+            flex: 1;
+        }
+        .item-acciones {
+            display: flex;
+            gap: 0.3rem;
+            align-items: center;
+        }
+
         .aviso-transferencia {
             background-color: var(--fondo-datos-empresa);
             border: 1px solid var(--whatsapp);
@@ -437,12 +520,17 @@
                 top: 0.5rem;
                 right: 0.5rem;
             }
-            /* Botón siguiente más compacto en móvil */
+            #vaciar-carrito-inicio {
+                top: 0.5rem;
+                right: 3.5rem;
+                font-size: 0.7rem;
+                padding: 0.3rem 0.6rem;
+            }
             .siguiente-bar {
-                padding: 0.5rem 1rem;      /* Reduce padding vertical/horizontal */
-                font-size: 0.9rem;          /* Disminuye tamaño de fuente */
-                bottom: 70px;                /* Ajusta distancia desde abajo */
-                white-space: nowrap;         /* Evita que el texto se divida */
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+                bottom: 70px;
+                white-space: nowrap;
             }
         }
     </style>
@@ -454,6 +542,7 @@
         <div class="logo-text">GOXPRESS</div>
         <div class="slogan">Donde Quieras, Cuando Quieras.</div>
         <button id="dark-mode-toggle">🌙</button>
+        <button id="vaciar-carrito-inicio" class="visible">🗑️ Vaciar carrito</button>
     </header>
 
     <!-- VISTA INICIO -->
@@ -491,7 +580,10 @@
 
     <!-- VISTA CHECKOUT -->
     <div id="vista-checkout" class="container vista">
-        <h2>Completá tus datos</h2>
+        <h2>
+            Completá tus datos
+            <button id="vaciar-carrito-checkout" class="btn-accion">🗑️ Vaciar todo</button>
+        </h2>
         <form id="form-checkout">
             <div class="form-group">
                 <label for="nombre">Nombre completo</label>
@@ -810,6 +902,7 @@
                         localStorage.removeItem('carrito');
                         actualizarContadorCarrito();
                         actualizarBotonSiguiente();
+                        actualizarBotonVaciarInicio();
                     } else {
                         return;
                     }
@@ -875,11 +968,11 @@
                 alert("Solo puedes pedir de un local a la vez.");
                 return;
             }
-            const item = carrito.find(i => i.id === id && !i.opcion);
+            const item = carrito.find(i => i.id === id && !i.opcion && !i.gramos);
             if (item) {
                 item.cantidad++;
             } else {
-                carrito.push({ id, nombre, precio, localId, cantidad: 1, opcion: null });
+                carrito.push({ id, nombre, precio, localId, cantidad: 1, opcion: null, gramos: null });
             }
             guardarCarrito();
         };
@@ -906,7 +999,8 @@
                     precio: precioFinal,
                     localId: localId,
                     cantidad: 1,
-                    opcion: opcionTexto
+                    opcion: opcionTexto,
+                    gramos: null
                 });
             }
             guardarCarrito();
@@ -937,7 +1031,8 @@
                     precio: precio,
                     localId: localId,
                     cantidad: 1,
-                    gramos: gramos
+                    gramos: gramos,
+                    opcion: null
                 });
             }
             guardarCarrito();
@@ -947,24 +1042,46 @@
             localStorage.setItem('carrito', JSON.stringify(carrito));
             actualizarContadorCarrito();
             actualizarBotonSiguiente();
+            actualizarBotonVaciarInicio();
             alert('✅ Producto agregado al carrito');
         }
 
-        function eliminarDelCarrito(id) {
-            carrito = carrito.filter(i => i.id !== id);
+        // Eliminar un item del carrito por su índice único (usamos id + opción/gramos para diferenciar)
+        window.eliminarItemDelCarrito = function(idUnico) {
+            // idUnico es una cadena que identifica el item (podría ser id-opcion-gramos)
+            // Simplificamos: eliminamos por el índice en el array o por combinación de campos
+            // Para este ejemplo, usaremos el índice que pasaremos desde el HTML
+            // Pero necesitamos una forma de identificar cada item. Lo haremos pasando el índice real del array.
+            // Mejor: creamos una función que recibe el índice del item en el array carrito.
+            // Para ello, al generar el resumen, guardaremos el índice.
+        }
+
+        // Función para eliminar por índice (más simple)
+        window.eliminarPorIndice = function(indice) {
+            carrito.splice(indice, 1);
             localStorage.setItem('carrito', JSON.stringify(carrito));
             actualizarContadorCarrito();
             actualizarBotonSiguiente();
+            actualizarBotonVaciarInicio();
+            // Si estamos en checkout, actualizar resumen
+            if (vistaActual === 'checkout') {
+                actualizarResumenCheckout();
+            }
         }
 
-        function actualizarCantidad(id, delta) {
-            const item = carrito.find(i => i.id === id);
-            if (item) {
-                item.cantidad += delta;
-                if (item.cantidad <= 0) {
-                    eliminarDelCarrito(id);
-                } else {
-                    localStorage.setItem('carrito', JSON.stringify(carrito));
+        // Vaciar todo el carrito
+        window.vaciarCarrito = function() {
+            if (carrito.length === 0) return;
+            if (confirm('¿Estás seguro de vaciar el carrito?')) {
+                carrito = [];
+                localStorage.removeItem('carrito');
+                actualizarContadorCarrito();
+                actualizarBotonSiguiente();
+                actualizarBotonVaciarInicio();
+                if (vistaActual === 'checkout') {
+                    mostrarVista('inicio');
+                } else if (vistaActual === 'inicio') {
+                    // Si estamos en inicio, solo ocultamos botones
                 }
             }
         }
@@ -983,6 +1100,15 @@
                 btn.classList.add('visible');
             } else {
                 btn.classList.remove('visible');
+            }
+        }
+
+        function actualizarBotonVaciarInicio() {
+            const btnVaciar = document.getElementById('vaciar-carrito-inicio');
+            if (carrito.length > 0) {
+                btnVaciar.classList.add('visible');
+            } else {
+                btnVaciar.classList.remove('visible');
             }
         }
 
@@ -1012,11 +1138,20 @@
             });
             const totalGeneral = totalProductos + envioTotal;
 
-            let html = '<h3>📋 Resumen de tu pedido</h3><ul>';
-            carrito.forEach(i => {
-                html += `<li>${i.nombre} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}</li>`;
+            let html = '<h3>📋 Resumen de tu pedido</h3>';
+            carrito.forEach((item, index) => {
+                html += `
+                    <div class="item-resumen">
+                        <div class="item-info">
+                            ${item.nombre} x${item.cantidad} = $${(item.precio * item.cantidad).toFixed(2)}
+                        </div>
+                        <div class="item-acciones">
+                            <button class="btn-eliminar" onclick="eliminarPorIndice(${index})" title="Eliminar">🗑️</button>
+                        </div>
+                    </div>
+                `;
             });
-            html += `</ul><p>💰 Subtotal: $${totalProductos.toFixed(2)}</p>`;
+            html += `<p style="margin-top:0.5rem;">💰 Subtotal: $${totalProductos.toFixed(2)}</p>`;
             html += `<p>🚚 Costo de envío estimado: $${envioTotal.toFixed(2)}</p>`;
             html += `<p><strong>💵 Total a pagar: $${totalGeneral.toFixed(2)}</strong></p>`;
 
@@ -1087,6 +1222,7 @@
             localStorage.removeItem('carrito');
             actualizarContadorCarrito();
             actualizarBotonSiguiente();
+            actualizarBotonVaciarInicio();
 
             mostrarVista('espera');
         });
@@ -1164,6 +1300,7 @@
                 document.getElementById('locales-container').classList.remove('oculto');
                 document.getElementById('local-seleccionado').style.display = 'none';
                 localSeleccionadoActual = null;
+                actualizarBotonVaciarInicio();
             }
             actualizarBotonSiguiente();
         }
@@ -1172,11 +1309,19 @@
             mostrarVista('inicio');
         });
 
+        // Botones vaciar carrito
+        document.getElementById('vaciar-carrito-inicio')?.addEventListener('click', vaciarCarrito);
+        document.getElementById('vaciar-carrito-checkout')?.addEventListener('click', () => {
+            vaciarCarrito();
+            if (carrito.length === 0) mostrarVista('inicio');
+        });
+
         // Inicialización
         window.onload = function() {
             mostrarLocales();
             actualizarContadorCarrito();
             actualizarBotonSiguiente();
+            actualizarBotonVaciarInicio();
             initFiltro();
             const script = document.createElement('script');
             script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&loading=async&libraries=places&callback=initDistanceMatrix`;
