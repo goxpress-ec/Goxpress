@@ -115,30 +115,6 @@
             background-color: var(--gris-fondo-secundario);
         }
 
-        /* Botón vaciar carrito en inicio */
-        #vaciar-carrito-inicio {
-            position: absolute;
-            top: 1rem;
-            right: 4rem; /* al lado del botón de modo oscuro */
-            background-color: var(--eliminar);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 0.4rem 0.8rem;
-            font-size: 0.8rem;
-            cursor: pointer;
-            display: none;
-            align-items: center;
-            gap: 0.3rem;
-            z-index: 100;
-        }
-        #vaciar-carrito-inicio:hover {
-            background-color: var(--eliminar-hover);
-        }
-        #vaciar-carrito-inicio.visible {
-            display: flex;
-        }
-
         .container {
             max-width: 1200px;
             margin: 1rem auto;
@@ -372,6 +348,7 @@
             background-color: var(--whatsapp-hover);
         }
 
+        /* Botones flotantes */
         .siguiente-bar {
             position: fixed;
             bottom: 80px;
@@ -422,6 +399,58 @@
 
         #soporte-btn:hover {
             background-color: var(--whatsapp-hover);
+        }
+
+        /* Botón flotante vaciar carrito */
+        #vaciar-carrito-flotante {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: var(--eliminar);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 1.8rem;
+            border: none;
+            transition: background-color 0.3s;
+            visibility: hidden;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: visibility 0.2s, opacity 0.2s, transform 0.2s;
+        }
+
+        #vaciar-carrito-flotante.visible {
+            visibility: visible;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        #vaciar-carrito-flotante:hover {
+            background-color: var(--eliminar-hover);
+        }
+
+        .badge-carrito {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--whatsapp);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            border: 2px solid white;
         }
 
         .form-group {
@@ -520,17 +549,21 @@
                 top: 0.5rem;
                 right: 0.5rem;
             }
-            #vaciar-carrito-inicio {
-                top: 0.5rem;
-                right: 3.5rem;
-                font-size: 0.7rem;
-                padding: 0.3rem 0.6rem;
-            }
             .siguiente-bar {
                 padding: 0.5rem 1rem;
                 font-size: 0.9rem;
                 bottom: 70px;
                 white-space: nowrap;
+            }
+            #vaciar-carrito-flotante, #soporte-btn {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
+            }
+            .badge-carrito {
+                width: 20px;
+                height: 20px;
+                font-size: 0.7rem;
             }
         }
     </style>
@@ -542,7 +575,6 @@
         <div class="logo-text">GOXPRESS</div>
         <div class="slogan">Donde Quieras, Cuando Quieras.</div>
         <button id="dark-mode-toggle">🌙</button>
-        <button id="vaciar-carrito-inicio" class="visible">🗑️ Vaciar carrito</button>
     </header>
 
     <!-- VISTA INICIO -->
@@ -651,7 +683,12 @@
         </div>
     </div>
 
+    <!-- Botones flotantes -->
     <button id="siguiente-btn" class="siguiente-bar">🛒 Siguiente (<span id="contador-carrito">0</span>)</button>
+    <button id="vaciar-carrito-flotante" title="Vaciar carrito">
+        🗑️
+        <span class="badge-carrito" id="badge-vaciar">0</span>
+    </button>
     <a href="https://wa.me/593994710370" target="_blank" id="soporte-btn" title="Soporte GOXPRESS">💬</a>
 
     <footer>
@@ -900,9 +937,7 @@
                     if (confirmar) {
                         carrito = [];
                         localStorage.removeItem('carrito');
-                        actualizarContadorCarrito();
-                        actualizarBotonSiguiente();
-                        actualizarBotonVaciarInicio();
+                        actualizarContadores();
                     } else {
                         return;
                     }
@@ -1040,29 +1075,15 @@
 
         function guardarCarrito() {
             localStorage.setItem('carrito', JSON.stringify(carrito));
-            actualizarContadorCarrito();
-            actualizarBotonSiguiente();
-            actualizarBotonVaciarInicio();
+            actualizarContadores();
             alert('✅ Producto agregado al carrito');
-        }
-
-        // Eliminar un item del carrito por su índice único (usamos id + opción/gramos para diferenciar)
-        window.eliminarItemDelCarrito = function(idUnico) {
-            // idUnico es una cadena que identifica el item (podría ser id-opcion-gramos)
-            // Simplificamos: eliminamos por el índice en el array o por combinación de campos
-            // Para este ejemplo, usaremos el índice que pasaremos desde el HTML
-            // Pero necesitamos una forma de identificar cada item. Lo haremos pasando el índice real del array.
-            // Mejor: creamos una función que recibe el índice del item en el array carrito.
-            // Para ello, al generar el resumen, guardaremos el índice.
         }
 
         // Función para eliminar por índice (más simple)
         window.eliminarPorIndice = function(indice) {
             carrito.splice(indice, 1);
             localStorage.setItem('carrito', JSON.stringify(carrito));
-            actualizarContadorCarrito();
-            actualizarBotonSiguiente();
-            actualizarBotonVaciarInicio();
+            actualizarContadores();
             // Si estamos en checkout, actualizar resumen
             if (vistaActual === 'checkout') {
                 actualizarResumenCheckout();
@@ -1075,23 +1096,29 @@
             if (confirm('¿Estás seguro de vaciar el carrito?')) {
                 carrito = [];
                 localStorage.removeItem('carrito');
-                actualizarContadorCarrito();
-                actualizarBotonSiguiente();
-                actualizarBotonVaciarInicio();
+                actualizarContadores();
                 if (vistaActual === 'checkout') {
                     mostrarVista('inicio');
-                } else if (vistaActual === 'inicio') {
-                    // Si estamos en inicio, solo ocultamos botones
                 }
             }
         }
 
-        function actualizarContadorCarrito() {
-            const contador = document.getElementById('contador-carrito');
-            if (contador) {
-                const totalItems = carrito.reduce((acc, i) => acc + i.cantidad, 0);
-                contador.textContent = totalItems;
+        function actualizarContadores() {
+            const totalItems = carrito.reduce((acc, i) => acc + i.cantidad, 0);
+            // Contador del botón siguiente
+            const contadorSiguiente = document.getElementById('contador-carrito');
+            if (contadorSiguiente) contadorSiguiente.textContent = totalItems;
+            // Badge del botón vaciar flotante
+            const badgeVaciar = document.getElementById('badge-vaciar');
+            if (badgeVaciar) badgeVaciar.textContent = totalItems;
+            // Visibilidad del botón vaciar flotante
+            const btnVaciarFlotante = document.getElementById('vaciar-carrito-flotante');
+            if (totalItems > 0) {
+                btnVaciarFlotante.classList.add('visible');
+            } else {
+                btnVaciarFlotante.classList.remove('visible');
             }
+            actualizarBotonSiguiente();
         }
 
         function actualizarBotonSiguiente() {
@@ -1100,15 +1127,6 @@
                 btn.classList.add('visible');
             } else {
                 btn.classList.remove('visible');
-            }
-        }
-
-        function actualizarBotonVaciarInicio() {
-            const btnVaciar = document.getElementById('vaciar-carrito-inicio');
-            if (carrito.length > 0) {
-                btnVaciar.classList.add('visible');
-            } else {
-                btnVaciar.classList.remove('visible');
             }
         }
 
@@ -1220,9 +1238,7 @@
 
             carrito = [];
             localStorage.removeItem('carrito');
-            actualizarContadorCarrito();
-            actualizarBotonSiguiente();
-            actualizarBotonVaciarInicio();
+            actualizarContadores();
 
             mostrarVista('espera');
         });
@@ -1300,9 +1316,9 @@
                 document.getElementById('locales-container').classList.remove('oculto');
                 document.getElementById('local-seleccionado').style.display = 'none';
                 localSeleccionadoActual = null;
-                actualizarBotonVaciarInicio();
             }
             actualizarBotonSiguiente();
+            // El botón flotante de vaciar se actualiza en actualizarContadores, que se llama en cada cambio
         }
 
         document.getElementById('volver-inicio-gracias')?.addEventListener('click', () => {
@@ -1310,7 +1326,7 @@
         });
 
         // Botones vaciar carrito
-        document.getElementById('vaciar-carrito-inicio')?.addEventListener('click', vaciarCarrito);
+        document.getElementById('vaciar-carrito-flotante')?.addEventListener('click', vaciarCarrito);
         document.getElementById('vaciar-carrito-checkout')?.addEventListener('click', () => {
             vaciarCarrito();
             if (carrito.length === 0) mostrarVista('inicio');
@@ -1319,9 +1335,7 @@
         // Inicialización
         window.onload = function() {
             mostrarLocales();
-            actualizarContadorCarrito();
-            actualizarBotonSiguiente();
-            actualizarBotonVaciarInicio();
+            actualizarContadores();
             initFiltro();
             const script = document.createElement('script');
             script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&loading=async&libraries=places&callback=initDistanceMatrix`;
