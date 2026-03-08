@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOXPRESS - Pedidos al instante</title>
+    <!-- Favicon: reemplaza con tu favicon.ico -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        /* ===== PALETA DE COLORES ===== */
+        :root {
+            --blanco: #ffffff;
+            --fondo-claro: #f8fafd;
+            --fondo-tarjetas: #f0f4fa;
+            --fondo-contenedores: #fafafa;
+            --fondo-detalle: #fff3e0;
+            --fondo-fecha: #fff3e0;
+            --fondo-datos-empresa: #f0f7f0;
+            --gris-borde: #d9e2ef;
+            --gris-fondo-secundario: #eaf0f8;
+            --gris-hover-secundario: #dbe4f0;
+            --gris-linea-punteada: #ccc;
+            --texto-comprobante: #333333;
+            --whatsapp: #25D366;
+            --whatsapp-hover: #20b859;
+            --whatsapp-disabled: #94d3a2;
+            --bg-body: var(--fondo-contenedores);
+            --text-color: var(--texto-comprobante);
+            --card-bg: var(--blanco);
+            --header-bg: var(--blanco);
+        }
+
+        /* Modo oscuro */
+        body.dark-mode {
+            --bg-body: #1a3b2a;
+            --text-color: #e0e0e0;
+            --card-bg: #1e2a24;
+            --header-bg: #0a2e1c;
+            --fondo-tarjetas: #2a3730;
+            --gris-borde: #3a4a40;
+            --gris-fondo-secundario: #33403a;
+            --texto-comprobante: #f0f0f0;
+            --fondo-detalle: #2a3730;
+            --fondo-datos-empresa: #1e2a24;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-color);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        header {
+            background-color: var(--header-bg);
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-bottom: 1px solid var(--gris-borde);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-img {
+            height: 70px;
+            width: auto;
+            margin-bottom: 5px;
+        }
+
+        .logo-text {
+            font-size: 2rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .slogan {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        #dark-mode-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-color);
+            padding: 0.3rem;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--gris-fondo-secundario);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 1rem auto;
+            padding: 0 1rem;
+            flex: 1;
+            width: 100%;
+        }
+
+        .vista {
+            display: none;
+        }
+
+        .vista.activa {
+            display: block;
+        }
+
+        h2 {
+            color: var(--text-color);
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--gris-borde);
+            padding-bottom: 0.3rem;
+            font-size: 1.3rem;
+        }
+
+        .titulo-locales {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--whatsapp);
+            font-weight: 500;
+        }
+
+        #volver-locales {
+            background-color: var(--gris-fondo-secundario);
+            color: var(--text-color);
+            border: 1px solid var(--gris-borde);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        /* Filtro de categorías: botones en desktop, select en móvil */
+        .filtro-categorias {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-categoria {
+            background-color: var(--gris-fondo-secundario);
+            border: 1px solid var(--gris-borde);
+            border-radius: 30px;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-color);
+        }
+
+        .btn-categoria.activo {
+            background-color: var(--whatsapp);
+            color: white;
+            border-color: var(--whatsapp);
+        }
+
+        #select-categoria-movil {
+            display: none;
+            width: 100%;
+            padding: 0.6rem;
+            border-radius: 8px;
+            border: 1px solid var(--gris-borde);
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            margin-bottom: 1rem;
+        }
+
+        /* Grid de locales */
+        .locales-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .card-local {
+            background-color: var(--fondo-tarjetas);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 1rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid var(--gris-borde);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .card-local:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .imagen-local {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--blanco);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 0.8rem;
+        }
+
+        .card-local h3 {
+            color: var(--text-color);
+            margin: 0.3rem 0;
+            font-size: 1.1rem;
+        }
+
+        .locales-grid.oculto {
+            display: none;
+        }
+
+        /* Productos */
+        .productos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .card-producto {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--gris-borde);
+            padding: 0.8rem;
+            transition: box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .imagen-producto {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-producto h4 {
+            color: var(--text-color);
+            margin-bottom: 0.2rem;
+            font-size: 1rem;
+        }
+
+        .precio-base, .precio-final {
+            font-weight: bold;
+            color: var(--text-color);
+            font-size: 1rem;
+            margin: 0.2rem 0;
+        }
+
+        .opciones-producto {
+            margin: 0.5rem 0;
+        }
+
+        .opciones-producto select, .opciones-producto input {
+            width: 100%;
+            padding: 0.3rem;
+            border-radius: 4px;
+            border: 1px solid var(--gris-borde);
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            margin-top: 0.2rem;
+        }
+
+        .btn-agregar {
+            background-color: var(--whatsapp);
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.3s;
+            margin-top: auto;
+        }
+
+        .btn-agregar:hover {
+            background-color: var(--whatsapp-hover);
+        }
+
+        .siguiente-bar {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--whatsapp);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .siguiente-bar.visible {
+            display: flex;
+        }
+
+        .siguiente-bar:hover {
+            background-color: var(--whatsapp-hover);
+        }
+
+        #soporte-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--whatsapp);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 1.8rem;
+            border: none;
+            text-decoration: none;
+        }
+
+        #soporte-btn:hover {
+            background-color: var(--whatsapp-hover);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.2rem;
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid var(--gris-borde);
+            border-radius: 6px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            font-family: inherit;
+        }
+
+        .resumen-pedido {
+            background-color: var(--fondo-detalle);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border: 1px dashed var(--gris-linea-punteada);
+        }
+
+        .aviso-transferencia {
+            background-color: var(--fondo-datos-empresa);
+            border: 1px solid var(--whatsapp);
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        footer {
+            background-color: var(--header-bg);
+            border-top: 1px solid var(--gris-borde);
+            padding: 0.8rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-color);
+        }
+
+        #map {
+            display: none;
+        }
+
+        /* Responsive: en móvil, ocultar botones y mostrar select */
+        @media (max-width: 600px) {
+            .btn-categoria {
+                display: none;
+            }
+            #select-categoria-movil {
+                display: block;
+            }
+            .locales-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .productos-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .logo-text {
+                font-size: 1.5rem;
+            }
+            .logo-img {
+                height: 50px;
+            }
+            #dark-mode-toggle {
+                top: 0.5rem;
+                right: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <!-- Reemplaza 'Goxpress.png' con la ruta de tu logo PNG -->
+        <img src="Goxpress.png" alt="GOXPRESS" class="logo-img" onerror="this.src='https://via.placeholder.com/150x70/FF6F00/ffffff?text=GOXPRESS'">
+        <div class="logo-text">GOXPRESS</div>
+        <div class="slogan">Donde Quieras, Cuando Quieras.</div>
+        <button id="dark-mode-toggle">🌙</button>
+    </header>
+
+    <!-- VISTA INICIO -->
+    <div id="vista-inicio" class="container vista activa">
+        <div class="titulo-locales">🌟 Nuestros Locales Aliados — ¡Pide con toda confianza! 🌟</div>
+        
+        <!-- Filtro de categorías: botones para desktop -->
+        <div class="filtro-categorias" id="filtro-categorias">
+            <button class="btn-categoria activo" data-categoria="todos">Todos</button>
+            <button class="btn-categoria" data-categoria="comida">Comida</button>
+            <button class="btn-categoria" data-categoria="supermercado">Supermercados</button>
+            <button class="btn-categoria" data-categoria="farmacia">Farmacias</button>
+            <button class="btn-categoria" data-categoria="licores">Licorerías</button>
+            <button class="btn-categoria" data-categoria="floristeria">Floristerías</button>
+            <button class="btn-categoria" data-categoria="otros">Otros</button>
+        </div>
+
+        <!-- Select para móvil -->
+        <select id="select-categoria-movil">
+            <option value="todos">Todos</option>
+            <option value="comida">Comida</option>
+            <option value="supermercado">Supermercados</option>
+            <option value="farmacia">Farmacias</option>
+            <option value="licores">Licorerías</option>
+            <option value="floristeria">Floristerías</option>
+            <option value="otros">Otros</option>
+        </select>
+
+        <div id="locales-container" class="locales-grid"></div>
+        <div id="local-seleccionado" style="display: none;">
+            <button id="volver-locales">← Ver todos los locales</button>
+            <div id="productos-local"></div>
+        </div>
+    </div>
+
+    <!-- VISTA CHECKOUT -->
+    <div id="vista-checkout" class="container vista">
+        <h2>Completá tus datos</h2>
+        <form id="form-checkout">
+            <div class="form-group">
+                <label for="nombre">Nombre completo</label>
+                <input type="text" id="nombre" required>
+            </div>
+            <div class="form-group">
+                <label for="cedula">Cédula o pasaporte</label>
+                <input type="text" id="cedula" required placeholder="Ej: 12345678-9">
+            </div>
+            <div class="form-group">
+                <label for="codigo-pais">Código de país</label>
+                <select id="codigo-pais" required>
+                    <option value="593" selected>Ecuador (+593)</option>
+                    <option value="54">Argentina (+54)</option>
+                    <option value="56">Chile (+56)</option>
+                    <option value="57">Colombia (+57)</option>
+                    <option value="51">Perú (+51)</option>
+                    <option value="52">México (+52)</option>
+                    <option value="34">España (+34)</option>
+                    <option value="1">EE.UU./Canadá (+1)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="telefono">Número de teléfono (sin código)</label>
+                <input type="text" id="telefono" required placeholder="Ej: 987654321">
+            </div>
+            <div class="form-group">
+                <label for="direccion">Dirección de entrega</label>
+                <textarea id="direccion" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="metodo-pago">Método de pago</label>
+                <select id="metodo-pago" required>
+                    <option value="efectivo">Efectivo</option>
+                    <option value="transferencia">Transferencia</option>
+                </select>
+            </div>
+
+            <div id="resumen-checkout" class="resumen-pedido"></div>
+            <button type="submit" class="btn-agregar" style="width: 100%; padding: 0.8rem;">Confirmar pedido</button>
+            <button type="button" id="volver-inicio-checkout" class="btn-agregar" style="background-color: var(--gris-fondo-secundario); color: var(--text-color); margin-top: 0.5rem;">Volver</button>
+        </form>
+    </div>
+
+    <!-- VISTA ESPERA -->
+    <div id="vista-espera" class="container vista">
+        <div class="resumen-pedido">
+            <h2>✨ ¡Estamos procesando tu pedido! ✨</h2>
+            <p>En un momento recibirás un mensaje de nuestro administrador con el costo exacto del envío. Por favor, ingrésalo aquí para continuar:</p>
+            <div class="form-group">
+                <label for="costo-envio-cliente">Costo de envío ($):</label>
+                <input type="number" id="costo-envio-cliente" step="0.01" min="0" placeholder="Ej: 2.50" required>
+            </div>
+            <button id="enviar-al-local" class="btn-agregar" style="width: 100%;">¡Listo, enviar pedido al local!</button>
+        </div>
+    </div>
+
+    <!-- VISTA GRACIAS -->
+    <div id="vista-gracias" class="container vista">
+        <div class="resumen-pedido">
+            <h2>💚 ¡Gracias por confiar en GOXPRESS! 💚</h2>
+            <p>Tu pedido ya fue enviado al local. Un Rider pasará a recogerlo en 5-10 minutos.</p>
+            <p>Pronto recibirás un mensaje con el estado de tu entrega. Si tienes dudas, contáctanos por el botón de soporte.</p>
+            <button id="volver-inicio-gracias" class="btn-agregar">Volver a la tienda</button>
+        </div>
+    </div>
+
+    <button id="siguiente-btn" class="siguiente-bar">🛒 Siguiente (<span id="contador-carrito">0</span>)</button>
+    <a href="https://wa.me/593994710370" target="_blank" id="soporte-btn" title="Soporte GOXPRESS">💬</a>
+
+    <footer>
+        © 2026 GOXPRESS · Ambato, Ecuador
+    </footer>
+
+    <script>
+        // ============================================================
+        // ========== CONFIGURACIÓN EDITABLE =========================
+        // ============================================================
+        // Aquí puedes modificar todos los datos de la tienda:
+        // - Números de teléfono
+        // - Locales (con sus categorías, coordenadas, horarios, imágenes y WhatsApp)
+        // - Productos (con diferentes tipos: simple, tamaño, salsa, peso)
+        // 
+        // IMPORTANTE: Guarda este archivo con codificación UTF-8 para que los emojis se vean correctamente.
+
+        const GOOGLE_MAPS_API_KEY = 'TU_CLAVE_DE_GOOGLE_MAPS'; // Reemplazar con tu clave de Google Maps
+
+        // Número de WhatsApp del administrador (para recibir la notificación inicial)
+        const WHATSAPP_ADMIN = '593994710370'; // Ejemplo: Ecuador +593 994710370
+
+        // Números de contacto para mostrar en mensajes (opcional)
+        const TELEFONO_CONTACTO1 = '593994710370';
+        const TELEFONO_CONTACTO2 = '593985562172';
+
+        // ===== LOCALES =====
+        // Cada local debe tener:
+        // - id: número único
+        // - nombre: texto
+        // - categoria: debe coincidir con las usadas en el filtro (comida, supermercado, farmacia, licores, floristeria, otros)
+        // - lat, lng: coordenadas para calcular distancia
+        // - horario: texto
+        // - imagen: URL de la imagen del local (puede ser una URL o ruta local)
+        // - whatsapp: número de WhatsApp del local (con código de país, sin +)
+        const datosGOXPRESS = {
+            locales: [
+                // COMIDA
+                { id: 1, nombre: "Pizzería La Napoli", categoria: "comida", lat: -34.6037, lng: -58.3816, horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pizza", whatsapp: "541123456789" },
+                { id: 2, nombre: "Hamburguesería El Ruedo", categoria: "comida", lat: -34.5956, lng: -58.3742, horario: "Lun-Sáb 12:00-23:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Burger", whatsapp: "541198765432" },
+                { id: 3, nombre: "Heladería Los Polares", categoria: "comida", lat: -34.6150, lng: -58.4000, horario: "Todos los días 14:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Helados", whatsapp: "54115556666" },
+                { id: 4, nombre: "Alitas & Más", categoria: "comida", lat: -34.6100, lng: -58.3900, horario: "Lun-Dom 12:00-00:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Alitas", whatsapp: "54117778888" },
+                // SUPERMERCADOS
+                { id: 5, nombre: "Mi Comisariato", categoria: "supermercado", lat: -34.6200, lng: -58.4100, horario: "Lun-Dom 8:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=MiComisariato", whatsapp: "54119999000" },
+                { id: 6, nombre: "Supermaxi", categoria: "supermercado", lat: -34.6030, lng: -58.3800, horario: "Lun-Dom 8:00-21:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Supermaxi", whatsapp: "54114444555" },
+                { id: 7, nombre: "Gran Aki", categoria: "supermercado", lat: -34.5900, lng: -58.3700, horario: "Lun-Dom 9:00-20:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=GranAki", whatsapp: "54112222333" },
+                { id: 8, nombre: "Tía", categoria: "supermercado", lat: -34.5950, lng: -58.3750, horario: "Lun-Sáb 8:30-21:30", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Tia", whatsapp: "54116666777" },
+                { id: 9, nombre: "Tuti", categoria: "supermercado", lat: -34.5800, lng: -58.3900, horario: "Lun-Dom 8:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Tuti", whatsapp: "54118888999" },
+                // FARMACIA
+                { id: 10, nombre: "Farmacia del Centro", categoria: "farmacia", lat: -34.5700, lng: -58.3800, horario: "24 horas", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Farmacia", whatsapp: "54112333444" },
+                // LICORERÍAS
+                { id: 11, nombre: "Licores Premium", categoria: "licores", lat: -34.5650, lng: -58.3750, horario: "Lun-Sáb 10:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Licores", whatsapp: "54115555666" },
+                { id: 12, nombre: "Bodega Don José", categoria: "licores", lat: -34.5750, lng: -58.3850, horario: "Lun-Dom 9:00-23:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Bodega", whatsapp: "54117777888" },
+                // FLORISTERÍAS
+                { id: 13, nombre: "Florería Margarita", categoria: "floristeria", lat: -34.5900, lng: -58.3700, horario: "Lun-Dom 9:00-20:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Flores", whatsapp: "54112222333" },
+                { id: 14, nombre: "Ramos y Detalles", categoria: "floristeria", lat: -34.5850, lng: -58.3650, horario: "Lun-Sáb 8:00-19:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Ramos", whatsapp: "54119999444" },
+                // OTROS
+                { id: 15, nombre: "Librería El Ateneo", categoria: "otros", lat: -34.5950, lng: -58.3750, horario: "Lun-Sáb 10:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Libreria", whatsapp: "54116666777" }
+            ],
+
+            // ===== PRODUCTOS =====
+            // Cada producto puede ser de diferentes tipos:
+            // - tipo "simple": precio fijo (ej: hamburguesa)
+            // - tipo "tamaño": tiene un precioBase y opciones de tamaño que añaden incremento (ej: pizza)
+            // - tipo "salsa": precioBase y opciones de salsa sin incremento (ej: alitas)
+            // - tipo "peso": precio por kg, el cliente ingresa gramos (ej: arroz)
+            // 
+            // Campos comunes:
+            // - id: número único
+            // - nombre: texto
+            // - descripcion: texto corto
+            // - localId: debe coincidir con el id del local al que pertenece
+            // - imagen: URL de la imagen del producto
+            // 
+            // Para tipo "simple": adicionalmente "precio" (número)
+            // Para tipo "tamaño": "precioBase" (número) y "opciones" (objeto con { "Nombre tamaño": incremento })
+            // Para tipo "salsa": "precioBase" (número) y "opciones" (objeto con { "Nombre salsa": 0 } - todas con 0)
+            // Para tipo "peso": "precioPorKg" (número)
+            productos: [
+                // Pizzería (id 1) - con tamaños
+                { id: 101, nombre: "Muzzarella", descripcion: "Muzzarella, aceitunas", tipo: "tamaño", precioBase: 8.00, localId: 1, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Pizza+Muzza", opciones: { "Personal": 0, "Mediana": 2.50, "Grande": 5.00 } },
+                { id: 102, nombre: "Napolitana", descripcion: "Muzzarella, tomate, ajo", tipo: "tamaño", precioBase: 9.50, localId: 1, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Pizza+Napo", opciones: { "Personal": 0, "Mediana": 2.50, "Grande": 5.00 } },
+                // Hamburguesería (id 2) - simples
+                { id: 201, nombre: "Clásica", descripcion: "Carne, lechuga, tomate", tipo: "simple", precio: 5.50, localId: 2, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Burger+Clasica" },
+                { id: 202, nombre: "Completa", descripcion: "Doble carne, cheddar, panceta", tipo: "simple", precio: 8.00, localId: 2, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Burger+Completa" },
+                // Heladería (id 3) - tamaño
+                { id: 301, nombre: "Helado artesanal", descripcion: "Dos sabores", tipo: "tamaño", precioBase: 3.50, localId: 3, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Helado", opciones: { "1/4 kg": 0, "1/2 kg": 3.00, "1 kg": 7.00 } },
+                // Alitas (id 4) - salsas
+                { id: 401, nombre: "Alitas 10 unidades", descripcion: "Con salsa", tipo: "salsa", precioBase: 7.00, localId: 4, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Alitas", opciones: { "BBQ": 0, "Picante": 0, "Miel mostaza": 0, "Buffalo": 0 } },
+                // SUPERMERCADOS - productos por peso
+                { id: 501, nombre: "Arroz", descripcion: "Arroz de primera", tipo: "peso", precioPorKg: 1.20, localId: 5, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Arroz" },
+                { id: 502, nombre: "Azúcar", descripcion: "Azúcar refinada", tipo: "peso", precioPorKg: 1.10, localId: 5, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Azucar" },
+                { id: 503, nombre: "Fideos", descripcion: "Tallarines", tipo: "peso", precioPorKg: 1.80, localId: 6, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Fideos" },
+                { id: 504, nombre: "Aceite", descripcion: "Aceite vegetal 1L", tipo: "simple", precio: 2.50, localId: 7, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Aceite" },
+                { id: 505, nombre: "Leche", descripcion: "Leche entera 1L", tipo: "simple", precio: 1.00, localId: 8, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Leche" },
+                { id: 506, nombre: "Huevos", descripcion: "Docena", tipo: "simple", precio: 2.80, localId: 9, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Huevos" },
+                // Farmacia
+                { id: 601, nombre: "Paracetamol 500mg", descripcion: "10 comprimidos", tipo: "simple", precio: 1.50, localId: 10, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Paracetamol" },
+                // Licorerías
+                { id: 701, nombre: "Vino tinto", descripcion: "Botella 750ml", tipo: "simple", precio: 12.00, localId: 11, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Vino" },
+                { id: 702, nombre: "Cerveza artesanal", descripcion: "Six pack", tipo: "simple", precio: 8.50, localId: 12, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Cerveza" },
+                // Floristerías
+                { id: 801, nombre: "Ramo de rosas", descripcion: "12 rosas rojas", tipo: "simple", precio: 15.00, localId: 13, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Rosas" },
+                { id: 802, nombre: "Girasoles", descripcion: "Ramo de 5 girasoles", tipo: "simple", precio: 12.00, localId: 14, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Girasoles" },
+                // Otros
+                { id: 901, nombre: "Libro 'Cien años de soledad'", descripcion: "Edición especial", tipo: "simple", precio: 18.00, localId: 15, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Libro" }
+            ]
+        };
+
+        // ============================================================
+        // ========== FIN CONFIGURACIÓN EDITABLE =====================
+        // ============================================================
+
+        // Variables globales (no editar)
+        let ubicacionCliente = { lat: -34.6037, lng: -58.3816 };
+        let distanciasLocales = {};
+        let costosEnvioLocales = {};
+        let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
+        let pedidoPendiente = JSON.parse(sessionStorage.getItem('pedidoPendiente')) || null;
+        let localSeleccionadoActual = null;
+        let vistaActual = 'inicio';
+        let categoriaActiva = 'todos';
+
+        // Modo noche
+        const toggle = document.getElementById('dark-mode-toggle');
+        toggle.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            toggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        });
+
+        // Google Maps Distance Matrix
+        function initDistanceMatrix() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        ubicacionCliente = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        calcularDistanciasATodos();
+                    },
+                    (error) => {
+                        console.warn("Error obteniendo ubicación, usando default:", error);
+                        calcularDistanciasATodos();
+                    }
+                );
+            } else {
+                calcularDistanciasATodos();
+            }
+        }
+
+        function calcularDistanciasATodos() {
+            if (!ubicacionCliente) return;
+            const origins = [`${ubicacionCliente.lat},${ubicacionCliente.lng}`];
+            const destinations = datosGOXPRESS.locales.map(l => `${l.lat},${l.lng}`);
+
+            const service = new google.maps.DistanceMatrixService();
+            service.getDistanceMatrix({
+                origins: origins,
+                destinations: destinations,
+                travelMode: 'DRIVING',
+                unitSystem: google.maps.UnitSystem.METRIC
+            }, (response, status) => {
+                if (status !== 'OK') {
+                    console.error('Error Distance Matrix:', status);
+                    return;
+                }
+                const results = response.rows[0].elements;
+                datosGOXPRESS.locales.forEach((local, index) => {
+                    if (results[index]?.status === 'OK') {
+                        const distanciaMetros = results[index].distance.value;
+                        const distanciaKm = distanciaMetros / 1000;
+                        distanciasLocales[local.id] = distanciaKm;
+                        costosEnvioLocales[local.id] = calcularCostoEnvio(distanciaKm);
+                    } else {
+                        distanciasLocales[local.id] = null;
+                        costosEnvioLocales[local.id] = 0;
+                    }
+                });
+            });
+        }
+
+        function calcularCostoEnvio(distanciaKm) {
+            const primerosKm = 2;
+            const tarifaPrimeros = 2.00;
+            const tarifaExtra = 0.25;
+            if (distanciaKm <= primerosKm) return tarifaPrimeros;
+            const extra = Math.ceil(distanciaKm - primerosKm);
+            return tarifaPrimeros + (extra * tarifaExtra);
+        }
+
+        // Filtro de categorías (botones y select)
+        function initFiltro() {
+            const botones = document.querySelectorAll('.btn-categoria');
+            const selectMovil = document.getElementById('select-categoria-movil');
+
+            function setCategoria(categoria) {
+                categoriaActiva = categoria;
+                botones.forEach(b => {
+                    if (b.dataset.categoria === categoria) {
+                        b.classList.add('activo');
+                    } else {
+                        b.classList.remove('activo');
+                    }
+                });
+                selectMovil.value = categoria;
+                mostrarLocales();
+            }
+
+            botones.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setCategoria(btn.dataset.categoria);
+                });
+            });
+
+            selectMovil.addEventListener('change', (e) => {
+                setCategoria(e.target.value);
+            });
+        }
+
+        // Mostrar locales según filtro
+        function mostrarLocales() {
+            const container = document.getElementById('locales-container');
+            let localesFiltrados = datosGOXPRESS.locales;
+            if (categoriaActiva !== 'todos') {
+                localesFiltrados = datosGOXPRESS.locales.filter(l => l.categoria === categoriaActiva);
+            }
+            container.innerHTML = localesFiltrados.map(local => `
+                <div class="card-local" onclick="seleccionarLocal(${local.id})">
+                    <img src="${local.imagen}" alt="${local.nombre}" class="imagen-local" onerror="this.src='https://via.placeholder.com/150/cccccc/ffffff?text=Local'">
+                    <h3>${local.nombre}</h3>
+                    <p>${local.horario}</p>
+                </div>
+            `).join('');
+        }
+
+        // Seleccionar un local
+        window.seleccionarLocal = function(localId) {
+            const local = datosGOXPRESS.locales.find(l => l.id === localId);
+            if (!local) return;
+
+            if (carrito.length > 0) {
+                const localEnCarrito = carrito[0].localId;
+                if (localEnCarrito !== localId) {
+                    const confirmar = confirm("Ya tienes productos de otro local en tu carrito. ¿Deseas reiniciar el carrito y seleccionar este nuevo local?");
+                    if (confirmar) {
+                        carrito = [];
+                        localStorage.removeItem('carrito');
+                        actualizarContadorCarrito();
+                        actualizarBotonSiguiente();
+                    } else {
+                        return;
+                    }
+                }
+            }
+
+            localSeleccionadoActual = localId;
+            document.getElementById('locales-container').classList.add('oculto');
+            document.getElementById('local-seleccionado').style.display = 'block';
+            const productos = datosGOXPRESS.productos.filter(p => p.localId === localId);
+            let html = `<h2>${local.nombre}</h2><div class="productos-grid">`;
+            productos.forEach(p => {
+                html += `<div class="card-producto" data-id="${p.id}">`;
+                html += `<img src="${p.imagen}" alt="${p.nombre}" class="imagen-producto" onerror="this.src='https://via.placeholder.com/300/cccccc/ffffff?text=Producto'">`;
+                html += `<h4>${p.nombre}</h4>`;
+                html += `<p style="font-size:0.8rem;">${p.descripcion || ''}</p>`;
+
+                if (p.tipo === 'simple') {
+                    html += `<div class="precio-final">$${p.precio.toFixed(2)}</div>`;
+                    html += `<button class="btn-agregar" onclick="agregarSimple(${p.id}, '${p.nombre}', ${p.precio}, ${localId})">Agregar</button>`;
+                } else if (p.tipo === 'tamaño') {
+                    html += `<div class="precio-base">Base: $${p.precioBase.toFixed(2)}</div>`;
+                    html += `<div class="opciones-producto"><label>Tamaño:</label> <select id="select-${p.id}">`;
+                    for (let [texto, inc] of Object.entries(p.opciones)) {
+                        html += `<option value="${inc}">${texto} (+$${inc.toFixed(2)})</option>`;
+                    }
+                    html += `</select></div>`;
+                    html += `<button class="btn-agregar" onclick="agregarConOpcion(${p.id}, '${p.nombre}', ${p.precioBase}, ${localId})">Agregar</button>`;
+                } else if (p.tipo === 'salsa') {
+                    html += `<div class="precio-base">Base: $${p.precioBase.toFixed(2)}</div>`;
+                    html += `<div class="opciones-producto"><label>Salsa:</label> <select id="select-${p.id}">`;
+                    for (let salsa of Object.keys(p.opciones)) {
+                        html += `<option value="0">${salsa}</option>`;
+                    }
+                    html += `</select></div>`;
+                    html += `<button class="btn-agregar" onclick="agregarSimple(${p.id}, '${p.nombre}', ${p.precioBase}, ${localId})">Agregar</button>`;
+                } else if (p.tipo === 'peso') {
+                    html += `<div class="precio-base">Precio por kg: $${p.precioPorKg.toFixed(2)}</div>`;
+                    html += `<div class="opciones-producto"><label>Cantidad (gramos):</label> <input type="number" id="peso-${p.id}" min="1" value="1000" step="100"></div>`;
+                    html += `<div class="precio-final" id="precio-${p.id}">$${p.precioPorKg.toFixed(2)}</div>`;
+                    html += `<button class="btn-agregar" onclick="agregarPorPeso(${p.id}, '${p.nombre}', ${p.precioPorKg}, ${localId})">Agregar</button>`;
+                    // Actualizar precio al cambiar peso
+                    setTimeout(() => {
+                        const input = document.getElementById(`peso-${p.id}`);
+                        if (input) {
+                            input.addEventListener('input', function() {
+                                const gramos = parseFloat(this.value) || 0;
+                                const precio = (gramos / 1000) * p.precioPorKg;
+                                document.getElementById(`precio-${p.id}`).textContent = `$${precio.toFixed(2)}`;
+                            });
+                        }
+                    }, 100);
+                }
+                html += `</div>`;
+            });
+            html += `</div>`;
+            document.getElementById('productos-local').innerHTML = html;
+        };
+
+        // Funciones de agregado al carrito
+        window.agregarSimple = function(id, nombre, precio, localId) {
+            if (carrito.length > 0 && carrito[0].localId !== localId) {
+                alert("Solo puedes pedir de un local a la vez.");
+                return;
+            }
+            const item = carrito.find(i => i.id === id && !i.opcion);
+            if (item) {
+                item.cantidad++;
+            } else {
+                carrito.push({ id, nombre, precio, localId, cantidad: 1, opcion: null });
+            }
+            guardarCarrito();
+        };
+
+        window.agregarConOpcion = function(id, nombreBase, precioBase, localId) {
+            const select = document.getElementById(`select-${id}`);
+            if (!select) return;
+            const incremento = parseFloat(select.value);
+            const opcionTexto = select.options[select.selectedIndex].text.split('(+')[0].trim();
+            const precioFinal = precioBase + incremento;
+
+            if (carrito.length > 0 && carrito[0].localId !== localId) {
+                alert("Solo puedes pedir de un local a la vez.");
+                return;
+            }
+
+            const itemExistente = carrito.find(i => i.id === id && i.opcion === opcionTexto);
+            if (itemExistente) {
+                itemExistente.cantidad++;
+            } else {
+                carrito.push({
+                    id: id,
+                    nombre: nombreBase + ' (' + opcionTexto + ')',
+                    precio: precioFinal,
+                    localId: localId,
+                    cantidad: 1,
+                    opcion: opcionTexto
+                });
+            }
+            guardarCarrito();
+        };
+
+        window.agregarPorPeso = function(id, nombreBase, precioPorKg, localId) {
+            const input = document.getElementById(`peso-${id}`);
+            if (!input) return;
+            const gramos = parseFloat(input.value) || 0;
+            if (gramos <= 0) {
+                alert("Ingresa una cantidad válida en gramos");
+                return;
+            }
+            const precio = (gramos / 1000) * precioPorKg;
+
+            if (carrito.length > 0 && carrito[0].localId !== localId) {
+                alert("Solo puedes pedir de un local a la vez.");
+                return;
+            }
+
+            const itemExistente = carrito.find(i => i.id === id && i.gramos === gramos);
+            if (itemExistente) {
+                itemExistente.cantidad++;
+            } else {
+                carrito.push({
+                    id: id,
+                    nombre: `${nombreBase} (${gramos}g)`,
+                    precio: precio,
+                    localId: localId,
+                    cantidad: 1,
+                    gramos: gramos
+                });
+            }
+            guardarCarrito();
+        };
+
+        function guardarCarrito() {
+            localStorage.setItem('carrito', JSON.stringify(carrito));
+            actualizarContadorCarrito();
+            actualizarBotonSiguiente();
+            alert('✅ Producto agregado al carrito');
+        }
+
+        function eliminarDelCarrito(id) {
+            carrito = carrito.filter(i => i.id !== id);
+            localStorage.setItem('carrito', JSON.stringify(carrito));
+            actualizarContadorCarrito();
+            actualizarBotonSiguiente();
+        }
+
+        function actualizarCantidad(id, delta) {
+            const item = carrito.find(i => i.id === id);
+            if (item) {
+                item.cantidad += delta;
+                if (item.cantidad <= 0) {
+                    eliminarDelCarrito(id);
+                } else {
+                    localStorage.setItem('carrito', JSON.stringify(carrito));
+                }
+            }
+        }
+
+        function actualizarContadorCarrito() {
+            const contador = document.getElementById('contador-carrito');
+            if (contador) {
+                const totalItems = carrito.reduce((acc, i) => acc + i.cantidad, 0);
+                contador.textContent = totalItems;
+            }
+        }
+
+        function actualizarBotonSiguiente() {
+            const btn = document.getElementById('siguiente-btn');
+            if (carrito.length > 0 && vistaActual === 'inicio') {
+                btn.classList.add('visible');
+            } else {
+                btn.classList.remove('visible');
+            }
+        }
+
+        // Volver a todos los locales
+        document.getElementById('volver-locales')?.addEventListener('click', () => {
+            document.getElementById('locales-container').classList.remove('oculto');
+            document.getElementById('local-seleccionado').style.display = 'none';
+            localSeleccionadoActual = null;
+        });
+
+        // Checkout
+        document.getElementById('siguiente-btn')?.addEventListener('click', () => {
+            if (carrito.length > 0) {
+                mostrarVista('checkout');
+                actualizarResumenCheckout();
+            } else {
+                alert('Agregá productos al carrito primero');
+            }
+        });
+
+        function actualizarResumenCheckout() {
+            const totalProductos = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+            const localesEnCarrito = [...new Set(carrito.map(i => i.localId))];
+            let envioTotal = 0;
+            localesEnCarrito.forEach(localId => {
+                envioTotal += costosEnvioLocales[localId] || 0;
+            });
+            const totalGeneral = totalProductos + envioTotal;
+
+            let html = '<h3>📋 Resumen de tu pedido</h3><ul>';
+            carrito.forEach(i => {
+                html += `<li>${i.nombre} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}</li>`;
+            });
+            html += `</ul><p>💰 Subtotal: $${totalProductos.toFixed(2)}</p>`;
+            html += `<p>🚚 Costo de envío estimado: $${envioTotal.toFixed(2)}</p>`;
+            html += `<p><strong>💵 Total a pagar: $${totalGeneral.toFixed(2)}</strong></p>`;
+
+            const metodoSelect = document.getElementById('metodo-pago');
+            const opcionEfectivo = metodoSelect.querySelector('option[value="efectivo"]');
+            if (totalGeneral > 30) {
+                html += `<div class="aviso-transferencia">⚠️ El total supera los $30, por lo que el pago debe realizarse por transferencia bancaria al local.</div>`;
+                metodoSelect.value = 'transferencia';
+                opcionEfectivo.disabled = true;
+            } else {
+                opcionEfectivo.disabled = false;
+            }
+
+            document.getElementById('resumen-checkout').innerHTML = html;
+        }
+
+        document.getElementById('form-checkout')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('nombre').value;
+            const cedula = document.getElementById('cedula').value;
+            const codigoPais = document.getElementById('codigo-pais').value;
+            const telefono = document.getElementById('telefono').value;
+            const telefonoCompleto = codigoPais + telefono;
+            const direccion = document.getElementById('direccion').value;
+            const metodoPago = document.getElementById('metodo-pago').value;
+
+            const itemsPorLocal = {};
+            carrito.forEach(item => {
+                if (!itemsPorLocal[item.localId]) itemsPorLocal[item.localId] = [];
+                itemsPorLocal[item.localId].push(item);
+            });
+
+            const pedido = {
+                nombre,
+                cedula,
+                telefono: telefonoCompleto,
+                direccion,
+                metodoPago,
+                itemsPorLocal,
+                fecha: new Date().toISOString()
+            };
+            sessionStorage.setItem('pedidoPendiente', JSON.stringify(pedido));
+            pedidoPendiente = pedido;
+
+            // Mensaje para el administrador con emojis
+            let mensajeAdmin = `🔔 *NUEVO PEDIDO PENDIENTE - GOXPRESS* 🔔\n\n`;
+            mensajeAdmin += `👤 *Cliente:* ${nombre}\n`;
+            mensajeAdmin += `🆔 *Cédula:* ${cedula}\n`;
+            mensajeAdmin += `📞 *Teléfono:* ${telefonoCompleto}\n`;
+            mensajeAdmin += `📍 *Dirección:* ${direccion}\n\n`;
+            mensajeAdmin += `🛍️ *Productos solicitados:*\n`;
+            for (const localId in itemsPorLocal) {
+                const local = datosGOXPRESS.locales.find(l => l.id == localId);
+                const items = itemsPorLocal[localId];
+                mensajeAdmin += `\n🏪 *${local.nombre}:*\n`;
+                items.forEach(i => {
+                    mensajeAdmin += `   • ${i.nombre} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}\n`;
+                });
+            }
+            mensajeAdmin += `\n💳 *Método de pago:* ${metodoPago}\n\n`;
+            mensajeAdmin += `👉 *Por favor, calcula el costo de envío y comunícalo al cliente.*\n`;
+            mensajeAdmin += `🙏 *Gracias por tu ayuda!*`;
+
+            const urlAdmin = `https://wa.me/${WHATSAPP_ADMIN}?text=${encodeURIComponent(mensajeAdmin)}`;
+            window.open(urlAdmin, '_blank');
+
+            carrito = [];
+            localStorage.removeItem('carrito');
+            actualizarContadorCarrito();
+            actualizarBotonSiguiente();
+
+            mostrarVista('espera');
+        });
+
+        document.getElementById('volver-inicio-checkout')?.addEventListener('click', () => {
+            mostrarVista('inicio');
+        });
+
+        // Envío al local
+        document.getElementById('enviar-al-local')?.addEventListener('click', () => {
+            if (!pedidoPendiente) {
+                alert('No hay pedido pendiente');
+                return;
+            }
+            const costoEnvio = parseFloat(document.getElementById('costo-envio-cliente').value);
+            if (isNaN(costoEnvio) || costoEnvio < 0) {
+                alert('Ingresa un costo de envío válido');
+                return;
+            }
+
+            const localIds = Object.keys(pedidoPendiente.itemsPorLocal);
+            if (localIds.length === 0) return;
+            const localId = parseInt(localIds[0]);
+            const local = datosGOXPRESS.locales.find(l => l.id === localId);
+            const items = pedidoPendiente.itemsPorLocal[localId];
+
+            const subtotalLocal = items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+            const totalLocal = subtotalLocal + costoEnvio;
+            const pagoNota = totalLocal > 30 ? `\n💳 *IMPORTANTE:* El total supera los $30, el pago debe realizarse por transferencia bancaria.` : '';
+
+            // Mensaje para el local con emojis
+            let mensajeLocal = `🔔 *NUEVO PEDIDO GOXPRESS - ${local.nombre}* 🔔\n\n`;
+            mensajeLocal += `👤 *Cliente:* ${pedidoPendiente.nombre}\n`;
+            mensajeLocal += `🆔 *Cédula:* ${pedidoPendiente.cedula}\n`;
+            mensajeLocal += `📞 *Teléfono:* ${pedidoPendiente.telefono}\n`;
+            mensajeLocal += `📍 *Dirección de entrega:* ${pedidoPendiente.direccion}\n\n`;
+            mensajeLocal += `🛍️ *Detalle del pedido:*\n`;
+            items.forEach(i => {
+                mensajeLocal += `   • ${i.nombre} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}\n`;
+            });
+            mensajeLocal += `\n💰 *Subtotal:* $${subtotalLocal.toFixed(2)}\n`;
+            mensajeLocal += `🚚 *Costo de envío:* $${costoEnvio.toFixed(2)}\n`;
+            mensajeLocal += `💵 *Total a pagar:* $${totalLocal.toFixed(2)}\n`;
+            mensajeLocal += `💳 *Método de pago:* ${pedidoPendiente.metodoPago}`;
+            mensajeLocal += pagoNota + `\n\n`;
+            mensajeLocal += `🛵 *Un Rider de GOXPRESS pasará a recoger el pedido en 5-10 minutos. Una vez en camino, nos contactaremos para informar el estado.*\n\n`;
+            mensajeLocal += `✅ *¡Muchas gracias por tu colaboración!* 🙌`;
+
+            const urlLocal = `https://wa.me/${local.whatsapp}?text=${encodeURIComponent(mensajeLocal)}`;
+            window.open(urlLocal, '_blank');
+
+            // Mensaje de resumen para el administrador (con emojis)
+            let mensajeAdminResumen = `🔔 *PEDIDO ENVIADO AL LOCAL* 🔔\n\n`;
+            mensajeAdminResumen += `👤 *Cliente:* ${pedidoPendiente.nombre}\n`;
+            mensajeAdminResumen += `🆔 *Cédula:* ${pedidoPendiente.cedula}\n`;
+            mensajeAdminResumen += `🏪 *Local:* ${local.nombre}\n`;
+            mensajeAdminResumen += `💵 *Total con envío:* $${totalLocal.toFixed(2)}\n\n`;
+            mensajeAdminResumen += `✅ *El pedido ya está en proceso de preparación.*`;
+
+            const urlAdminResumen = `https://wa.me/${WHATSAPP_ADMIN}?text=${encodeURIComponent(mensajeAdminResumen)}`;
+            window.open(urlAdminResumen, '_blank');
+
+            sessionStorage.removeItem('pedidoPendiente');
+            pedidoPendiente = null;
+            mostrarVista('gracias');
+        });
+
+        // Navegación SPA
+        function mostrarVista(vistaId) {
+            vistaActual = vistaId;
+            document.querySelectorAll('.vista').forEach(v => v.classList.remove('activa'));
+            document.getElementById(`vista-${vistaId}`).classList.add('activa');
+            if (vistaId === 'inicio') {
+                mostrarLocales();
+                document.getElementById('locales-container').classList.remove('oculto');
+                document.getElementById('local-seleccionado').style.display = 'none';
+                localSeleccionadoActual = null;
+            }
+            actualizarBotonSiguiente();
+        }
+
+        document.getElementById('volver-inicio-gracias')?.addEventListener('click', () => {
+            mostrarVista('inicio');
+        });
+
+        // Inicialización
+        window.onload = function() {
+            mostrarLocales();
+            actualizarContadorCarrito();
+            actualizarBotonSiguiente();
+            initFiltro();
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&loading=async&libraries=places&callback=initDistanceMatrix`;
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+        };
+    </script>
+</body>
+</html>
