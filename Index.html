@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GOXPRESS - Pedidos al instante</title>
-    <!-- Favicon: reemplaza con tu favicon.ico -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <style>
         /* ===== PALETA DE COLORES ===== */
@@ -32,7 +31,6 @@
             --eliminar-hover: #cc0000;
         }
 
-        /* Modo oscuro */
         body.dark-mode {
             --bg-body: #1a3b2a;
             --text-color: #e0e0e0;
@@ -195,7 +193,6 @@
             display: inline-block;
         }
 
-        /* Filtro de categorías: botones en desktop, select en móvil */
         .filtro-categorias {
             display: flex;
             flex-wrap: wrap;
@@ -232,7 +229,6 @@
             margin-bottom: 1rem;
         }
 
-        /* Grid de locales */
         .locales-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -279,7 +275,6 @@
             display: none;
         }
 
-        /* Productos */
         .productos-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -348,7 +343,6 @@
             background-color: var(--whatsapp-hover);
         }
 
-        /* Botones flotantes */
         .siguiente-bar {
             position: fixed;
             bottom: 80px;
@@ -401,7 +395,6 @@
             background-color: var(--whatsapp-hover);
         }
 
-        /* Botón flotante vaciar carrito */
         #vaciar-carrito-flotante {
             position: fixed;
             bottom: 20px;
@@ -525,7 +518,6 @@
             display: none;
         }
 
-        /* Responsive: en móvil, ocultar botones y mostrar select */
         @media (max-width: 600px) {
             .btn-categoria {
                 display: none;
@@ -570,18 +562,15 @@
 </head>
 <body>
     <header>
-        <!-- Reemplaza 'Goxpress.png' con la ruta de tu logo PNG -->
         <img src="Goxpress.png" alt="GOXPRESS" class="logo-img" onerror="this.src='https://via.placeholder.com/150x70/FF6F00/ffffff?text=GOXPRESS'">
         <div class="logo-text">GOXPRESS</div>
         <div class="slogan">Donde Quieras, Cuando Quieras.</div>
         <button id="dark-mode-toggle">🌙</button>
     </header>
 
-    <!-- VISTA INICIO -->
     <div id="vista-inicio" class="container vista activa">
         <div class="titulo-locales">🌟 Nuestros Locales Aliados — ¡Pide con toda confianza! 🌟</div>
         
-        <!-- Filtro de categorías: botones para desktop -->
         <div class="filtro-categorias" id="filtro-categorias">
             <button class="btn-categoria activo" data-categoria="todos">Todos</button>
             <button class="btn-categoria" data-categoria="comida">Comida</button>
@@ -592,7 +581,6 @@
             <button class="btn-categoria" data-categoria="otros">Otros</button>
         </div>
 
-        <!-- Select para móvil -->
         <select id="select-categoria-movil">
             <option value="todos">Todos</option>
             <option value="comida">Comida</option>
@@ -610,7 +598,6 @@
         </div>
     </div>
 
-    <!-- VISTA CHECKOUT -->
     <div id="vista-checkout" class="container vista">
         <h2>
             Completá tus datos
@@ -660,7 +647,6 @@
         </form>
     </div>
 
-    <!-- VISTA ESPERA -->
     <div id="vista-espera" class="container vista">
         <div class="resumen-pedido">
             <h2>✨ ¡Estamos procesando tu pedido! ✨</h2>
@@ -673,7 +659,6 @@
         </div>
     </div>
 
-    <!-- VISTA GRACIAS -->
     <div id="vista-gracias" class="container vista">
         <div class="resumen-pedido">
             <h2>💚 ¡Gracias por confiar en GOXPRESS! 💚</h2>
@@ -683,7 +668,6 @@
         </div>
     </div>
 
-    <!-- Botones flotantes -->
     <button id="siguiente-btn" class="siguiente-bar">🛒 Siguiente (<span id="contador-carrito">0</span>)</button>
     <button id="vaciar-carrito-flotante" title="Vaciar carrito">
         🗑️
@@ -699,31 +683,12 @@
         // ============================================================
         // ========== CONFIGURACIÓN EDITABLE =========================
         // ============================================================
-        // Aquí puedes modificar todos los datos de la tienda:
-        // - Números de teléfono
-        // - Locales (con sus categorías, coordenadas, horarios, imágenes y WhatsApp)
-        // - Productos (con diferentes tipos: simple, tamaño, salsa, peso)
-        // 
-        // IMPORTANTE: Guarda este archivo con codificación UTF-8 para que los emojis se vean correctamente.
-
         const GOOGLE_MAPS_API_KEY = 'TU_CLAVE_DE_GOOGLE_MAPS'; // Reemplazar con tu clave de Google Maps
-
-        // Número de WhatsApp del administrador (para recibir la notificación inicial)
-        const WHATSAPP_ADMIN = '593994710370'; // Ejemplo: Ecuador +593 994710370
-
-        // Números de contacto para mostrar en mensajes (opcional)
+        const WHATSAPP_ADMIN = '593994710370'; // Número del administrador
         const TELEFONO_CONTACTO1 = '593994710370';
         const TELEFONO_CONTACTO2 = '593985562172';
 
         // ===== LOCALES =====
-        // Cada local debe tener:
-        // - id: número único
-        // - nombre: texto
-        // - categoria: debe coincidir con las usadas en el filtro (comida, supermercado, farmacia, licores, floristeria, otros)
-        // - lat, lng: coordenadas para calcular distancia
-        // - horario: texto
-        // - imagen: URL de la imagen del local (puede ser una URL o ruta local)
-        // - whatsapp: número de WhatsApp del local (con código de país, sin +)
         const datosGOXPRESS = {
             locales: [
                 // COMIDA
@@ -731,92 +696,64 @@
                 { id: 2, nombre: "Hamburguesería El Ruedo", categoria: "comida", lat: -34.5956, lng: -58.3742, horario: "Lun-Sáb 12:00-23:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Burger", whatsapp: "541198765432" },
                 { id: 3, nombre: "Heladería Los Polares", categoria: "comida", lat: -34.6150, lng: -58.4000, horario: "Todos los días 14:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Helados", whatsapp: "54115556666" },
                 { id: 4, nombre: "Alitas & Más", categoria: "comida", lat: -34.6100, lng: -58.3900, horario: "Lun-Dom 12:00-00:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Alitas", whatsapp: "54117778888" },
-                { id: 5, nombre: "Pizzería La Napoli", categoria: "comida", lat: -34.6037, lng: -58.3816, horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pizza", whatsapp: "541123456789" },
-                { id: 6, nombre: "Hamburguesería El Ruedo", categoria: "comida", lat: -34.5956, lng: -58.3742, horario: "Lun-Sáb 12:00-23:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Burger", whatsapp: "541198765432" },
-                { id: 7, nombre: "Heladería Los Polares", categoria: "comida", lat: -34.6150, lng: -58.4000, horario: "Todos los días 14:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Helados", whatsapp: "54115556666" },
-                { id: 8, nombre: "Alitas & Más", categoria: "comida", lat: -34.6100, lng: -58.3900, horario: "Lun-Dom 12:00-00:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Alitas", whatsapp: "54117778888" },
-                
                 // SUPERMERCADOS
                 { id: 301, nombre: "Mi Comisariato", categoria: "supermercado", lat: -34.6200, lng: -58.4100, horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/457306695_537123862029395_1879722413412660847_n.jpg?stp=dst-jpg_p160x160_tt6&_nc_cat=1&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeHm6jRqej8coTDOXu3t4WpkLfhWWhb9UNAt-FZaFv1Q0KzuwDGR9ukZbSGEopGOoc0i4RtawK3IAHWMd53sFvgr&_nc_ohc=o1IkbA-MVjoQ7kNvwHt0s6H&_nc_oc=AdmdUkBWpjY06xIKpxwCVM076aSXBwoaHrIHA9iThtqxK8VkeA6ftSKJbzkJxvqtvuw&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=iBowEEK7Hrx-C84sJlBxeQ&_nc_ss=8&oh=00_AfygI4lpEQtrr1m4L6nsFr0R0POP8_FJbtRsIwANXP0QAQ&oe=69B41C64", whatsapp: "593985562172" },
-                { id: 302, nombre: "Supermaxi", categoria: "supermercado", lat: -34.6030, lng: -58.3800, horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/290149688_5233291333396225_8083044231098832198_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHJhwRwIxk2ov27T94qJn5DKoc5U8bZi9kqhzlTxtmL2dPn4iD5GjN-IrOxF533A3DLoueVcdD6mgPqXDrRoCiW&_nc_ohc=_Jy5EbmmVCoQ7kNvwEyLGuF&_nc_oc=AdnLqBP2dbGwIx_iXI1fM0c-sSxnzTmv1ducSL9qHaMJ5mLy8L_1aQHrbctmWy1MenY&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=zp5aG8aRpRQws0haezlJnQ&_nc_ss=8&oh=00_AfzOSnBqKCw40mkRoL2neDQP4rmUaPDf8pj3AemNL5V5pw&oe=69B40AFA", whatsapp: "593985562172" },
+                { id: 302, nombre: "Supermaxi", categoria: "supermercado", lat: -34.6030, lng: -58.3800, horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/290149688_5233291333396225_8083044231098832198_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHJhwRwIxk2ov27T94qJn5DKoc5U8bZi9kqhzlTxtmL2dPn4iD5GjN-IrOxF533A3DLoueVcdD6mgPqXDrRoCiW&_nc_ohc=_Jy5EbmmVcoQ7kNvwEyLGuF&_nc_oc=AdnLqBP2dbGwIx_iXI1fM0c-sSxnzTmv1ducSL9qHaMJ5mLy8L_1aQHrbctmWy1MenY&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=zp5aG8aRpRQws0haezlJnQ&_nc_ss=8&oh=00_AfzOSnBqKCw40mkRoL2neDQP4rmUaPDf8pj3AemNL5V5pw&oe=69B40AFA", whatsapp: "593985562172" },
+                { id: 303, nombre: "Supermercado San Francisco", categoria: "supermercado", lat: -34.5900, lng: -58.3700, horario: "Lun-Dom 9:00-21:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=San+Francisco", whatsapp: "593985562172" },
                 { id: 304, nombre: "Gran Akí", categoria: "supermercado", lat: -34.5900, lng: -58.3700, horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/290130231_5143906062313435_4415335187114780834_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeF26USOfnbNMAbL7k1s_HeZ52KUFXjlN33nYpQVeOU3fS1sD7oul7T1Sk_HkAKo42tRU8TrSxsuNbxYlBSzBCpR&_nc_ohc=8lCaWKdFBCsQ7kNvwHiN_uH&_nc_oc=AdngwCpUngMtEmet2CYkVz8VxpibtyPhIAkJ3Kyy2E1CcRB078UpMrOaAsMfPZfhbK4&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=YYo81QsGzHxUVpeEvthanw&_nc_ss=8&oh=00_Afx_XSRKpsQaOKpoJrWfPPs-NIgXGmHPQItDzT5d3GTKKA&oe=69B4215E", whatsapp: "593985562172" },
                 { id: 305, nombre: "Tía", categoria: "supermercado", lat: -34.5950, lng: -58.3750, horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/515358181_1140026501506869_7810775067598000396_n.jpg?stp=c85.0.1877.1877a_dst-jpg_s160x160_tt6&_nc_cat=1&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeEQ5SitvBJLP4J1-fhZjL_J509ukfzMKkHnT26R_MwqQe530AN80fWEGfUbXkmIuSdBTheoFEmF8Ycec6q7-Eby&_nc_ohc=iG4pyxLHYeYQ7kNvwFcfZge&_nc_oc=Adk3LJJrnXkcnQ0ssAA1ez7pocmaRbRumVDprGB6lWAimlMX7otImSt8qbK8RQ4SsWA&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=gKXarLKHmQ2AUa4NSpaaMQ&_nc_ss=8&oh=00_AfzOytHJHj-cTsXgnxh2ab9wlBpoQ2E90nLh8x-HYyP2Wg&oe=69B419B9", whatsapp: "593985562172" },
                 { id: 306, nombre: "Tuti", categoria: "supermercado", lat: -34.5800, lng: -58.3900, horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/456876373_122190445472017962_5842124583331949689_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFr25B_Ku-l3EVVStNDjwqmrvUWdmXtVSCu9RZ2Ze1VIL4hX6lKxY2Nh438AuGYcyZ-z-vf2bYq22nFPHktdGsE&_nc_ohc=8cNYpwYjMZIQ7kNvwF93SWl&_nc_oc=Adl8Wv1bxRBtYJlfBT_uaf94iwvng9B2ZeVx9bPqYOjr3qD5wgFShiVz-19T2OFVKDw&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=UQ9HCGVxVnB-1W9wZXafPQ&_nc_ss=8&oh=00_Afzy-3g1iJycQ1HC4T-8BENYkhw3MpOXq95F6Pn82sycCw&oe=69B41526", whatsapp: "593985562172" },
-                
                 // FARMACIA
                 { id: 350, nombre: "Farmacias Santa Martha", categoria: "farmacia", lat: -34.5700, lng: -58.3800, horario: "24 horas", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/240826552_6687502394608447_3702621369534526910_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEntz8Z-NdS9LaKG1Vc7PLAmuaIgl8ZWF2a5oiCXxlYXXNIhmxzlTUIet85i9oN6R4N79w7iL3s9HoFmoJXbTYH&_nc_ohc=gADip8iR3_kQ7kNvwF3goIr&_nc_oc=AdlKBPsxGWHvxldXh0cBMvLFMaBpB67eBOKwWr3KWWdwpaKfQQxP7df9OgYcVK_7E2Q&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=oAo0057Bkm4jxBfAOsosOQ&_nc_ss=8&oh=00_Afz1ilAJEOBau1oF33EKCKOFuiH4yvYFso4MUP4VQ2NNog&oe=69B41233", whatsapp: "593" },
                 { id: 351, nombre: "Farmacias Napoles", categoria: "farmacia", lat: -34.5700, lng: -58.3800, horario: "24 horas", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/348243530_258105006762620_8410729308657500174_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=103&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeG51IYHmWS0yDZRc7scLLkkc6-hkcRMVjhzr6GRxExWOHB7u-6Y2TINaykkyNkT_jrS7_55Orqk07KAcTe0rUuC&_nc_ohc=UP5QmCjvz3IQ7kNvwFE1qTe&_nc_oc=Adn8w2g-tohxfvmYrvTu2hTrd58iLxB2MA-XroAqxZC67lR4tZNXX_HCm4qbCJHulLc&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=XcvqJcxZGV4o8ouWHGY2_A&_nc_ss=8&oh=00_Afwia_g1iyPlYRkEcbxlKvNz09gYLdMsIrSvFG0UXUQKfg&oe=69B4293F", whatsapp: "593964201454" },        
-                
                 // LICORERÍAS
                 { id: 400, nombre: "Licores Premium", categoria: "licores", lat: -34.5650, lng: -58.3750, horario: "Lun-Dom 10:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Licores", whatsapp: "54115555666" },
                 { id: 401, nombre: "Bodega Don José", categoria: "licores", lat: -34.5750, lng: -58.3850, horario: "Lun-Dom 9:00-23:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Bodega", whatsapp: "54117777888" },
-                
                 // FLORISTERÍAS
                 { id: 450, nombre: "Deluxe Flower", categoria: "floristeria", lat: -34.5900, lng: -58.3700, horario: "Lun-Dom 8:00-17:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/343061243_230124802955710_6231036976151676677_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=107&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFiJvk0KmQZFqLseikrkxFJxwrhin7uVJjHCuGKfu5UmNtJURnJCVni_Mx5G3g2dtkqZfx9I4Yi7m3pMUAOcbLM&_nc_ohc=vnaOvmTrzI8Q7kNvwFDCxy6&_nc_oc=AdnO-r5s-S0RHFoAlohIwOUcluIEBaX8ILaNeRuSH2kalsL_Em2vm4s_JwT5isuO3Mw&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=UA8EkRsxADUaWPxBssPOZg&_nc_ss=8&oh=00_Afxrkb-jEG0IaVE2mKbRngMeUAekEmya_Ev28iIIIMPL-A&oe=69B419AF", whatsapp: "593963171852" },
                 { id: 451, nombre: "Flower", categoria: "floristeria", lat: -34.5850, lng: -58.3650, horario: "Lun-Dom 8:00-17:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/417222679_274478712320273_815891181823719382_n.jpg?stp=c0.0.720.720a_dst-jpg_s200x200_tt6&_nc_cat=100&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeEwGodWCJGVm9CdPbS0fTMhQhUe35OlrdZCFR7fk6Wt1r4lM4cUP0RPth24InAenhqSnJg_Aktqp8dlVsjBSY4D&_nc_ohc=t3b4Yu-WR4oQ7kNvwGno48b&_nc_oc=AdlTuf54Ros_2Tfu6JyhME9PckCZKqcv90wbD9CAXo0emdfQLJEHESeL6SsNdcQhkf4&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=Hzn0qM2Zs83Bm6gr-B3Svg&_nc_ss=8&oh=00_Afxn1WTEl0RN6MxC_dlILVNWIne_DyEvlUnjwhEMxsRd6g&oe=69B43E23", whatsapp: "593999804289" },
-                                
                 // OTROS
                 { id: 500, nombre: "Librería El Ateneo", categoria: "otros", lat: -34.5950, lng: -58.3750, horario: "Lun-Sáb 10:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Libreria", whatsapp: "54116666777" }
             ],
 
-            // ===== PRODUCTOS =====
-            // Cada producto puede ser de diferentes tipos:
-            // - tipo "simple": precio fijo (ej: hamburguesa)
-            // - tipo "tamaño": tiene un precioBase y opciones de tamaño que añaden incremento (ej: pizza)
-            // - tipo "salsa": precioBase y opciones de salsa sin incremento (ej: alitas)
-            // - tipo "peso": precio por kg, el cliente ingresa gramos (ej: arroz)
-            // 
-            // Campos comunes:
-            // - id: número único
-            // - nombre: texto
-            // - descripcion: texto corto
-            // - localId: debe coincidir con el id del local al que pertenece
-            // - imagen: URL de la imagen del producto
-            // 
-            // Para tipo "simple": adicionalmente "precio" (número)
-            // Para tipo "tamaño": "precioBase" (número) y "opciones" (objeto con { "Nombre tamaño": incremento })
-            // Para tipo "salsa": "precioBase" (número) y "opciones" (objeto con { "Nombre salsa": 0 } - todas con 0)
-            // Para tipo "peso": "precioPorKg" (número)
             productos: [
-                // Pizzería (id 1) - con tamaños
+                // Pizzería (id 1)
                 { id: 101, nombre: "Muzzarella", descripcion: "Muzzarella, aceitunas", tipo: "tamaño", precioBase: 8.00, localId: 1, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Pizza+Muzza", opciones: { "Personal": 0, "Mediana": 2.50, "Grande": 5.00 } },
                 { id: 102, nombre: "Napolitana", descripcion: "Muzzarella, tomate, ajo", tipo: "tamaño", precioBase: 9.50, localId: 1, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Pizza+Napo", opciones: { "Personal": 0, "Mediana": 2.50, "Grande": 5.00 } },
+                // Hamburguesería (id 2)
                 { id: 201, nombre: "Clásica", descripcion: "Carne, lechuga, tomate", tipo: "simple", precio: 5.50, localId: 2, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Burger+Clasica" },
                 { id: 202, nombre: "Completa", descripcion: "Doble carne, cheddar, panceta", tipo: "simple", precio: 8.00, localId: 2, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Burger+Completa" },
+                // Heladería (id 3)
                 { id: 301, nombre: "Helado artesanal", descripcion: "Dos sabores", tipo: "tamaño", precioBase: 3.50, localId: 3, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Helado", opciones: { "1/4 kg": 0, "1/2 kg": 3.00, "1 kg": 7.00 } },
+                // Alitas (id 4)
                 { id: 401, nombre: "Alitas 10 unidades", descripcion: "Con salsa", tipo: "salsa", precioBase: 7.00, localId: 4, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Alitas", opciones: { "BBQ": 0, "Picante": 0, "Miel mostaza": 0, "Buffalo": 0 } },
-                
-                // SUPERMERCADOS - productos por peso
+                // SUPERMERCADOS
                 { id: 501, nombre: "Arroz", descripcion: "Arroz de primera", tipo: "peso", precioPorKg: 1.20, localId: 301, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Arroz" },
                 { id: 502, nombre: "Azúcar", descripcion: "Azúcar refinada", tipo: "peso", precioPorKg: 1.10, localId: 302, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Azucar" },
                 { id: 503, nombre: "Fideos", descripcion: "Tallarines", tipo: "peso", precioPorKg: 1.80, localId: 303, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Fideos" },
                 { id: 504, nombre: "Aceite", descripcion: "Aceite vegetal 1L", tipo: "simple", precio: 2.50, localId: 304, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Aceite" },
                 { id: 505, nombre: "Leche", descripcion: "Leche entera 1L", tipo: "simple", precio: 1.00, localId: 305, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Leche" },
                 { id: 506, nombre: "Huevos", descripcion: "Docena", tipo: "simple", precio: 2.80, localId: 306, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Huevos" },
-                
-                // Farmacia
+                // Farmacias
                 { id: 601, nombre: "Paracetamol 500mg", descripcion: "10 comprimidos", tipo: "simple", precio: 1.50, localId: 350, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Paracetamol" },
-                { id: 601, nombre: "Paracetamol 500mg", descripcion: "10 comprimidos", tipo: "simple", precio: 1.50, localId: 351, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Paracetamol" },
-                
+                { id: 602, nombre: "Paracetamol 500mg", descripcion: "10 comprimidos", tipo: "simple", precio: 1.50, localId: 351, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Paracetamol" },
                 // Licorerías
                 { id: 701, nombre: "Vino tinto", descripcion: "Botella 750ml", tipo: "simple", precio: 12.00, localId: 400, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Vino" },
                 { id: 702, nombre: "Cerveza artesanal", descripcion: "Six pack", tipo: "simple", precio: 8.50, localId: 401, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Cerveza" },
-                
                 // Floristerías
                 { id: 801, nombre: "Ramo de rosas", descripcion: "12 rosas rojas", tipo: "simple", precio: 15.00, localId: 450, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Rosas" },
                 { id: 802, nombre: "Girasoles", descripcion: "Ramo de 5 girasoles", tipo: "simple", precio: 12.00, localId: 450, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Girasoles" },
                 { id: 803, nombre: "Girasoles", descripcion: "Ramo de 6 girasoles", tipo: "simple", precio: 12.00, localId: 451, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Girasoles" },
-                
                 // Otros
                 { id: 901, nombre: "Libro 'Cien años de soledad'", descripcion: "Edición especial", tipo: "simple", precio: 18.00, localId: 500, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Libro" }
             ]
         };
 
         // ============================================================
-        // ========== FIN CONFIGURACIÓN EDITABLE =====================
+        // ========== FIN CONFIGURACIÓN ===============================
         // ============================================================
 
-        // Variables globales (no editar)
+        // Variables globales
         let ubicacionCliente = { lat: -34.6037, lng: -58.3816 };
         let distanciasLocales = {};
         let costosEnvioLocales = {};
@@ -826,15 +763,51 @@
         let vistaActual = 'inicio';
         let categoriaActiva = 'todos';
 
-        // Modo noche
+        // Elementos del DOM
         const toggle = document.getElementById('dark-mode-toggle');
+        const volverLocalesBtn = document.getElementById('volver-locales');
+        const siguienteBtn = document.getElementById('siguiente-btn');
+        const vaciarFlotante = document.getElementById('vaciar-carrito-flotante');
+        const vaciarCheckout = document.getElementById('vaciar-carrito-checkout');
+        const formCheckout = document.getElementById('form-checkout');
+        const volverInicioCheckout = document.getElementById('volver-inicio-checkout');
+        const enviarAlLocal = document.getElementById('enviar-al-local');
+        const volverInicioGracias = document.getElementById('volver-inicio-gracias');
+        const selectCategoriaMovil = document.getElementById('select-categoria-movil');
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                mostrarLocales();
+                actualizarContadores();
+                initFiltro();
+                cargarGoogleMaps();
+            } catch (e) {
+                console.error('Error en inicialización:', e);
+            }
+        });
+
+        // Modo oscuro
         toggle.addEventListener('click', () => {
             document.body.classList.toggle('dark-mode');
             toggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
         });
 
-        // Google Maps Distance Matrix
-        function initDistanceMatrix() {
+        // Google Maps
+        function cargarGoogleMaps() {
+            if (typeof google === 'undefined' || !google.maps) {
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&loading=async&libraries=places&callback=initDistanceMatrix`;
+                script.async = true;
+                script.defer = true;
+                script.onerror = () => console.warn('No se pudo cargar Google Maps. Usando distancias por defecto.');
+                document.head.appendChild(script);
+            } else {
+                initDistanceMatrix();
+            }
+        }
+
+        window.initDistanceMatrix = function() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
@@ -852,9 +825,10 @@
             } else {
                 calcularDistanciasATodos();
             }
-        }
+        };
 
         function calcularDistanciasATodos() {
+            if (typeof google === 'undefined' || !google.maps) return;
             if (!ubicacionCliente) return;
             const origins = [`${ubicacionCliente.lat},${ubicacionCliente.lng}`];
             const destinations = datosGOXPRESS.locales.map(l => `${l.lat},${l.lng}`);
@@ -894,10 +868,9 @@
             return tarifaPrimeros + (extra * tarifaExtra);
         }
 
-        // Filtro de categorías (botones y select)
+        // Filtro de categorías
         function initFiltro() {
             const botones = document.querySelectorAll('.btn-categoria');
-            const selectMovil = document.getElementById('select-categoria-movil');
 
             function setCategoria(categoria) {
                 categoriaActiva = categoria;
@@ -908,7 +881,7 @@
                         b.classList.remove('activo');
                     }
                 });
-                selectMovil.value = categoria;
+                selectCategoriaMovil.value = categoria;
                 mostrarLocales();
             }
 
@@ -918,7 +891,7 @@
                 });
             });
 
-            selectMovil.addEventListener('change', (e) => {
+            selectCategoriaMovil.addEventListener('change', (e) => {
                 setCategoria(e.target.value);
             });
         }
@@ -972,28 +945,19 @@
                 if (p.tipo === 'simple') {
                     html += `<div class="precio-final">$${p.precio.toFixed(2)}</div>`;
                     html += `<button class="btn-agregar" onclick="agregarSimple(${p.id}, '${p.nombre}', ${p.precio}, ${localId})">Agregar</button>`;
-                } else if (p.tipo === 'tamaño') {
+                } else if (p.tipo === 'tamaño' || p.tipo === 'salsa') {
                     html += `<div class="precio-base">Base: $${p.precioBase.toFixed(2)}</div>`;
-                    html += `<div class="opciones-producto"><label>Tamaño:</label> <select id="select-${p.id}">`;
+                    html += `<div class="opciones-producto"><label>${p.tipo === 'tamaño' ? 'Tamaño' : 'Salsa'}:</label> <select id="select-${p.id}">`;
                     for (let [texto, inc] of Object.entries(p.opciones)) {
-                        html += `<option value="${inc}">${texto} (+$${inc.toFixed(2)})</option>`;
+                        html += `<option value="${inc}">${texto} ${p.tipo === 'tamaño' ? '(+$' + inc.toFixed(2) + ')' : ''}</option>`;
                     }
                     html += `</select></div>`;
                     html += `<button class="btn-agregar" onclick="agregarConOpcion(${p.id}, '${p.nombre}', ${p.precioBase}, ${localId})">Agregar</button>`;
-                } else if (p.tipo === 'salsa') {
-                    html += `<div class="precio-base">Base: $${p.precioBase.toFixed(2)}</div>`;
-                    html += `<div class="opciones-producto"><label>Salsa:</label> <select id="select-${p.id}">`;
-                    for (let salsa of Object.keys(p.opciones)) {
-                        html += `<option value="0">${salsa}</option>`;
-                    }
-                    html += `</select></div>`;
-                    html += `<button class="btn-agregar" onclick="agregarSimple(${p.id}, '${p.nombre}', ${p.precioBase}, ${localId})">Agregar</button>`;
                 } else if (p.tipo === 'peso') {
                     html += `<div class="precio-base">Precio por kg: $${p.precioPorKg.toFixed(2)}</div>`;
                     html += `<div class="opciones-producto"><label>Cantidad (gramos):</label> <input type="number" id="peso-${p.id}" min="1" value="1000" step="100"></div>`;
                     html += `<div class="precio-final" id="precio-${p.id}">$${p.precioPorKg.toFixed(2)}</div>`;
                     html += `<button class="btn-agregar" onclick="agregarPorPeso(${p.id}, '${p.nombre}', ${p.precioPorKg}, ${localId})">Agregar</button>`;
-                    // Actualizar precio al cambiar peso
                     setTimeout(() => {
                         const input = document.getElementById(`peso-${p.id}`);
                         if (input) {
@@ -1093,18 +1057,15 @@
             alert('✅ Producto agregado al carrito');
         }
 
-        // Función para eliminar por índice (más simple)
         window.eliminarPorIndice = function(indice) {
             carrito.splice(indice, 1);
             localStorage.setItem('carrito', JSON.stringify(carrito));
             actualizarContadores();
-            // Si estamos en checkout, actualizar resumen
             if (vistaActual === 'checkout') {
                 actualizarResumenCheckout();
             }
-        }
+        };
 
-        // Vaciar todo el carrito
         window.vaciarCarrito = function() {
             if (carrito.length === 0) return;
             if (confirm('¿Estás seguro de vaciar el carrito?')) {
@@ -1115,17 +1076,12 @@
                     mostrarVista('inicio');
                 }
             }
-        }
+        };
 
         function actualizarContadores() {
             const totalItems = carrito.reduce((acc, i) => acc + i.cantidad, 0);
-            // Contador del botón siguiente
-            const contadorSiguiente = document.getElementById('contador-carrito');
-            if (contadorSiguiente) contadorSiguiente.textContent = totalItems;
-            // Badge del botón vaciar flotante
-            const badgeVaciar = document.getElementById('badge-vaciar');
-            if (badgeVaciar) badgeVaciar.textContent = totalItems;
-            // Visibilidad del botón vaciar flotante
+            document.getElementById('contador-carrito').textContent = totalItems;
+            document.getElementById('badge-vaciar').textContent = totalItems;
             const btnVaciarFlotante = document.getElementById('vaciar-carrito-flotante');
             if (totalItems > 0) {
                 btnVaciarFlotante.classList.add('visible');
@@ -1144,15 +1100,13 @@
             }
         }
 
-        // Volver a todos los locales
-        document.getElementById('volver-locales')?.addEventListener('click', () => {
+        volverLocalesBtn.addEventListener('click', () => {
             document.getElementById('locales-container').classList.remove('oculto');
             document.getElementById('local-seleccionado').style.display = 'none';
             localSeleccionadoActual = null;
         });
 
-        // Checkout
-        document.getElementById('siguiente-btn')?.addEventListener('click', () => {
+        siguienteBtn.addEventListener('click', () => {
             if (carrito.length > 0) {
                 mostrarVista('checkout');
                 actualizarResumenCheckout();
@@ -1200,7 +1154,7 @@
             document.getElementById('resumen-checkout').innerHTML = html;
         }
 
-        document.getElementById('form-checkout')?.addEventListener('submit', (e) => {
+        formCheckout.addEventListener('submit', (e) => {
             e.preventDefault();
             const nombre = document.getElementById('nombre').value;
             const cedula = document.getElementById('cedula').value;
@@ -1228,7 +1182,6 @@
             sessionStorage.setItem('pedidoPendiente', JSON.stringify(pedido));
             pedidoPendiente = pedido;
 
-            // Mensaje para el administrador con emojis
             let mensajeAdmin = `🔔 *NUEVO PEDIDO PENDIENTE - GOXPRESS* 🔔\n\n`;
             mensajeAdmin += `👤 *Cliente:* ${nombre}\n`;
             mensajeAdmin += `🆔 *Cédula:* ${cedula}\n`;
@@ -1257,12 +1210,11 @@
             mostrarVista('espera');
         });
 
-        document.getElementById('volver-inicio-checkout')?.addEventListener('click', () => {
+        volverInicioCheckout.addEventListener('click', () => {
             mostrarVista('inicio');
         });
 
-        // Envío al local
-        document.getElementById('enviar-al-local')?.addEventListener('click', () => {
+        enviarAlLocal.addEventListener('click', () => {
             if (!pedidoPendiente) {
                 alert('No hay pedido pendiente');
                 return;
@@ -1283,7 +1235,6 @@
             const totalLocal = subtotalLocal + costoEnvio;
             const pagoNota = totalLocal > 30 ? `\n💳 *IMPORTANTE:* El total supera los $30, el pago debe realizarse por transferencia bancaria.` : '';
 
-            // Mensaje para el local con emojis
             let mensajeLocal = `🔔 *NUEVO PEDIDO GOXPRESS - ${local.nombre}* 🔔\n\n`;
             mensajeLocal += `👤 *Cliente:* ${pedidoPendiente.nombre}\n`;
             mensajeLocal += `🆔 *Cédula:* ${pedidoPendiente.cedula}\n`;
@@ -1304,7 +1255,6 @@
             const urlLocal = `https://wa.me/${local.whatsapp}?text=${encodeURIComponent(mensajeLocal)}`;
             window.open(urlLocal, '_blank');
 
-            // Mensaje de resumen para el administrador (con emojis)
             let mensajeAdminResumen = `🔔 *PEDIDO ENVIADO AL LOCAL* 🔔\n\n`;
             mensajeAdminResumen += `👤 *Cliente:* ${pedidoPendiente.nombre}\n`;
             mensajeAdminResumen += `🆔 *Cédula:* ${pedidoPendiente.cedula}\n`;
@@ -1320,7 +1270,16 @@
             mostrarVista('gracias');
         });
 
-        // Navegación SPA
+        volverInicioGracias.addEventListener('click', () => {
+            mostrarVista('inicio');
+        });
+
+        vaciarFlotante.addEventListener('click', vaciarCarrito);
+        vaciarCheckout.addEventListener('click', () => {
+            vaciarCarrito();
+            if (carrito.length === 0) mostrarVista('inicio');
+        });
+
         function mostrarVista(vistaId) {
             vistaActual = vistaId;
             document.querySelectorAll('.vista').forEach(v => v.classList.remove('activa'));
@@ -1332,36 +1291,10 @@
                 localSeleccionadoActual = null;
             }
             actualizarBotonSiguiente();
-            // El botón flotante de vaciar se actualiza en actualizarContadores, que se llama en cada cambio
         }
 
-        document.getElementById('volver-inicio-gracias')?.addEventListener('click', () => {
-            mostrarVista('inicio');
-        });
-
-        // Botones vaciar carrito
-        document.getElementById('vaciar-carrito-flotante')?.addEventListener('click', vaciarCarrito);
-        document.getElementById('vaciar-carrito-checkout')?.addEventListener('click', () => {
-            vaciarCarrito();
-            if (carrito.length === 0) mostrarVista('inicio');
-        });
-
-        // Inicialización
-        window.onload = function() {
-            mostrarLocales();
-            actualizarContadores();
-            initFiltro();
-            const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&loading=async&libraries=places&callback=initDistanceMatrix`;
-            script.async = true;
-            script.defer = true;
-            document.head.appendChild(script);
-        };
+        // Actualizar enlace de soporte con número configurable
+        document.getElementById('soporte-btn').href = `https://wa.me/${WHATSAPP_ADMIN}`;
     </script>
 </body>
 </html>
-
-
-
-
-
