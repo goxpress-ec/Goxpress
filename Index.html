@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GOXPRESS - Pedidos al instante</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <!-- Sin favicon para evitar errores de carga -->
     <style>
         /* ===== PALETA DE COLORES ===== */
         :root {
@@ -562,23 +562,23 @@
 </head>
 <body>
     <header>
-        <img src="Goxpress.png" alt="GOXPRESS" class="logo-img" onerror="this.src='https://via.placeholder.com/150x70/FF6F00/ffffff?text=GOXPRESS'">
+        <img src="Goxpress.png" alt="GOXPRESS" class="logo-img" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'150\' height=\'70\' viewBox=\'0 0 150 70\'%3E%3Crect width=\'150\' height=\'70\' fill=\'%23FF6F00\'/%3E%3Ctext x=\'50%25\' y=\'50%25\' font-size=\'18\' text-anchor=\'middle\' dy=\'.3em\' fill=\'%23fff\'%3EGOXPRESS%3C/text%3E%3C/svg%3E'">
         <div class="logo-text">GOXPRESS</div>
         <div class="slogan">Donde Quieras, Cuando Quieras.</div>
-        <button id="dark-mode-toggle">🌙</button>
+        <button id="dark-mode-toggle" type="button">🌙</button>
     </header>
 
     <div id="vista-inicio" class="container vista activa">
         <div class="titulo-locales">🌟 Nuestros Locales Aliados — ¡Pide con toda confianza! 🌟</div>
         
         <div class="filtro-categorias" id="filtro-categorias">
-            <button class="btn-categoria activo" data-categoria="todos">Todos</button>
-            <button class="btn-categoria" data-categoria="comida">Comida</button>
-            <button class="btn-categoria" data-categoria="supermercado">Supermercados</button>
-            <button class="btn-categoria" data-categoria="farmacia">Farmacias</button>
-            <button class="btn-categoria" data-categoria="licores">Licorerías</button>
-            <button class="btn-categoria" data-categoria="floristeria">Floristerías</button>
-            <button class="btn-categoria" data-categoria="otros">Otros</button>
+            <button class="btn-categoria activo" data-categoria="todos" type="button">Todos</button>
+            <button class="btn-categoria" data-categoria="comida" type="button">Comida</button>
+            <button class="btn-categoria" data-categoria="supermercado" type="button">Supermercados</button>
+            <button class="btn-categoria" data-categoria="farmacia" type="button">Farmacias</button>
+            <button class="btn-categoria" data-categoria="licores" type="button">Licorerías</button>
+            <button class="btn-categoria" data-categoria="floristeria" type="button">Floristerías</button>
+            <button class="btn-categoria" data-categoria="otros" type="button">Otros</button>
         </div>
 
         <select id="select-categoria-movil">
@@ -593,7 +593,7 @@
 
         <div id="locales-container" class="locales-grid"></div>
         <div id="local-seleccionado" style="display: none;">
-            <button id="volver-locales">← Ver todos los locales</button>
+            <button id="volver-locales" type="button">← Ver todos los locales</button>
             <div id="productos-local"></div>
         </div>
     </div>
@@ -601,7 +601,7 @@
     <div id="vista-checkout" class="container vista">
         <h2>
             Completá tus datos
-            <button id="vaciar-carrito-checkout" class="btn-accion">🗑️ Vaciar todo</button>
+            <button id="vaciar-carrito-checkout" class="btn-accion" type="button">🗑️ Vaciar todo</button>
         </h2>
         <form id="form-checkout">
             <div class="form-group">
@@ -655,7 +655,7 @@
                 <label for="costo-envio-cliente">Costo de envío ($):</label>
                 <input type="number" id="costo-envio-cliente" step="0.01" min="0" placeholder="Ej: 2.50" required>
             </div>
-            <button id="enviar-al-local" class="btn-agregar" style="width: 100%;">¡Listo, enviar pedido al local!</button>
+            <button id="enviar-al-local" class="btn-agregar" type="button" style="width: 100%;">¡Listo, enviar pedido al local!</button>
         </div>
     </div>
 
@@ -664,12 +664,12 @@
             <h2>💚 ¡Gracias por confiar en GOXPRESS! 💚</h2>
             <p>Tu pedido ya fue enviado al local. Un Rider pasará a recogerlo en 5-10 minutos.</p>
             <p>Pronto recibirás un mensaje con el estado de tu entrega. Si tienes dudas, contáctanos por el botón de soporte.</p>
-            <button id="volver-inicio-gracias" class="btn-agregar">Volver a la tienda</button>
+            <button id="volver-inicio-gracias" class="btn-agregar" type="button">Volver a la tienda</button>
         </div>
     </div>
 
-    <button id="siguiente-btn" class="siguiente-bar">🛒 Siguiente (<span id="contador-carrito">0</span>)</button>
-    <button id="vaciar-carrito-flotante" title="Vaciar carrito">
+    <button id="siguiente-btn" class="siguiente-bar" type="button">🛒 Siguiente (<span id="contador-carrito">0</span>)</button>
+    <button id="vaciar-carrito-flotante" type="button" title="Vaciar carrito">
         🗑️
         <span class="badge-carrito" id="badge-vaciar">0</span>
     </button>
@@ -690,32 +690,101 @@
         // ===== LOCALES =====
         const datosGOXPRESS = {
             locales: [
-                // COMIDA
+                // ==================== COMIDA ====================
+                // IDs existentes (con productos)
                 { id: 1, nombre: "ALAS 8 Ambato", categoria: "comida", horario: "Lun-Dom 16:30-22:30", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-6/326362905_706598784478688_2505175895699667043_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGaQnIbgE53-Q3rtPvWwMFvngwGAK7PWKueDAYArs9Yq46xKRhn7s_kyEJxTQI0hiv-BiDEFNZWK5JL5Nfr5m83&_nc_ohc=NqBf4OxIWCwQ7kNvwGlFmiT&_nc_oc=AdntSNjvq1-Wd16PdZCPZhkSEgMF1u2ZSVzCJE9T7OI_6Dce6u-JCVkBrSxPeJkZ3r0&_nc_zt=23&_nc_ht=scontent.fuio11-2.fna&_nc_gid=Hr2e5gETKw5VcxK94VxnBA&_nc_ss=8&oh=00_AfylxHquWFeuAauL8Y7Ydz0uq709seEVezB4lW67vlfhqA&oe=69B57CF2", whatsapp: "593987788964" },
-                { id: 2, nombre: "Apapear&Sweat", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pizza", whatsapp: "541123456789" },
-                { id: 3, nombre: "BerdiGrill", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pizza", whatsapp: "593981779177" },
+                { id: 2, nombre: "Apapear&Sweat", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Apapear", whatsapp: "541123456789" },
+                { id: 3, nombre: "BerdiGrill", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=BerdiGrill", whatsapp: "593981779177" },
                 { id: 4, nombre: "Bolonche", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://scontent.fuio11-1.fna.fbcdn.net/v/t39.30808-6/646376975_122241332846153586_1528527911710042237_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeG0D7WvsVQQ2fx3Ov8_xn6YWHrOq5ipdTxYes6rmKl1PHD3eaagBPWkCYN1s5SXNJcvXHUDwh8PCiGQ7A6UdkDY&_nc_ohc=LraIjLVZOq4Q7kNvwGyZRLF&_nc_oc=AdkOrq3d2JOZHtXxAAdCMNocQlsK-xTekFv6Hy0SmviA2dnSa6lr5wAvORkDXjbLX_4&_nc_zt=23&_nc_ht=scontent.fuio11-1.fna&_nc_gid=HbAZ3cFrBtuYdAbEp6op7w&_nc_ss=8&oh=00_AfwBwy_8Je020rrk6nKeiYlvMwtWjDpjMWWgyfrbGs0vTg&oe=69B59242", whatsapp: "593991495550" },
-                { id: 5, nombre: "Brissa y Marisqueria", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pizza", whatsapp: "541123456789" },
-                { id: 6, nombre: "Negocio", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pizza", whatsapp: "541123456789" },
-                { id: 7, nombre: "Negocio", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pizza", whatsapp: "541123456789" },
-                // SUPERMERCADOS
+                
+                // Brissa y Marisqueria - 6 sucursales (reemplazan al antiguo id 5)
+                { id: 1000, nombre: "Brissa y Marisqueria - Centro", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Brissa+Centro", whatsapp: "593111111111" }, // Reemplazar
+                { id: 1001, nombre: "Brissa y Marisqueria - Norte", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Brissa+Norte", whatsapp: "593222222222" }, // Reemplazar
+                { id: 1002, nombre: "Brissa y Marisqueria - Sur", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Brissa+Sur", whatsapp: "593333333333" }, // Reemplazar
+                { id: 1003, nombre: "Brissa y Marisqueria - Este", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Brissa+Este", whatsapp: "593444444444" }, // Reemplazar
+                { id: 1004, nombre: "Brissa y Marisqueria - Oeste", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Brissa+Oeste", whatsapp: "593555555555" }, // Reemplazar
+                { id: 1005, nombre: "Brissa y Marisqueria - Terminal", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Brissa+Terminal", whatsapp: "593666666666" }, // Reemplazar
+
+                // Nuevos locales de comida (IDs desde 1006 en adelante)
+                { id: 1006, nombre: "Brisa & Marea", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Brisa+Marea", whatsapp: "593000000001" },
+                { id: 1007, nombre: "Broos Burguer Las Chancro", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Broos+Burguer", whatsapp: "593000000002" },
+                { id: 1008, nombre: "Broster Casero", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Broster+Casero", whatsapp: "593000000003" },
+                { id: 1009, nombre: "Camaron Reventado", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Camaron+Reventado", whatsapp: "593000000004" },
+                { id: 1010, nombre: "Chifa Chao Zhou", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Chifa+Chao+Zhou", whatsapp: "593000000005" },
+                { id: 1011, nombre: "Chifa China 2", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Chifa+China+2", whatsapp: "593000000006" },
+                { id: 1012, nombre: "Chifa Yin Yang", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Chifa+Yin+Yang", whatsapp: "593000000007" },
+                { id: 1013, nombre: "Combo Loco", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Combo+Loco", whatsapp: "593000000008" },
+                { id: 1014, nombre: "Cosmopolita Coffee", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Cosmopolita+Coffee", whatsapp: "593000000009" },
+                { id: 1015, nombre: "Donald's Pizzeria", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Donald's+Pizzeria", whatsapp: "593000000010" },
+                { id: 1016, nombre: "Donas", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Donas", whatsapp: "593000000011" },
+                { id: 1017, nombre: "El Lince Restaurante", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=El+Lince", whatsapp: "593000000012" },
+                { id: 1018, nombre: "El Paisa", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=El+Paisa", whatsapp: "593000000013" },
+                { id: 1019, nombre: "El Parrillero B.B.Q - Grill", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=El+Parrillero", whatsapp: "593000000014" },
+                { id: 1020, nombre: "El Rincón de las Alitas", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Rincon+Alitas", whatsapp: "593000000015" },
+                { id: 1021, nombre: "El Rincón Venezolano", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Rincon+Venezolano", whatsapp: "593000000016" },
+                { id: 1022, nombre: "El Sambito", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=El+Sambito", whatsapp: "593000000017" },
+                { id: 1023, nombre: "El Ta-kamex", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=El+Ta-kamex", whatsapp: "593000000018" },
+                { id: 1024, nombre: "El Toque Guayaco 2", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Toque+Guayaco", whatsapp: "593000000019" },
+                { id: 1025, nombre: "Fast Broaster", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Fast+Broaster", whatsapp: "593000000020" },
+                { id: 1026, nombre: "Fast Chicken", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Fast+Chicken", whatsapp: "593000000021" },
+                { id: 1027, nombre: "Foggatta", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Foggatta", whatsapp: "593000000022" },
+                { id: 1028, nombre: "Foodut Pizzeria", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Foodut", whatsapp: "593000000023" },
+                { id: 1029, nombre: "Inari Sushi Rock", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Inari+Sushi", whatsapp: "593000000024" },
+                { id: 1030, nombre: "Kaffa", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Kaffa", whatsapp: "593000000025" },
+                { id: 1031, nombre: "KFC", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=KFC", whatsapp: "593000000026" },
+                { id: 1032, nombre: "King Pizza", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=King+Pizza", whatsapp: "593000000027" },
+                { id: 1033, nombre: "La Cigarra Pizzeria", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=La+Cigarra", whatsapp: "593000000028" },
+                { id: 1034, nombre: "La Farine Pizzeria", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=La+Farine", whatsapp: "593000000029" },
+                { id: 1035, nombre: "La Fornace", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=La+Fornace", whatsapp: "593000000030" },
+                { id: 1036, nombre: "La Herencia", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=La+Herencia", whatsapp: "593000000031" },
+                { id: 1037, nombre: "la VAK Pizzeria", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=la+VAK", whatsapp: "593000000032" },
+                { id: 1038, nombre: "Media Noche Restaurant", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Media+Noche", whatsapp: "593000000033" },
+                { id: 1039, nombre: "Mimo Parrilla Gourmet", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Mimo+Parrilla", whatsapp: "593000000034" },
+                { id: 1040, nombre: "MM Wings", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=MM+Wings", whatsapp: "593000000035" },
+                { id: 1041, nombre: "Mr Parrilla", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Mr+Parrilla", whatsapp: "593000000036" },
+                { id: 1042, nombre: "Panda Sushi Rolls", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Panda+Sushi", whatsapp: "593000000037" },
+                { id: 1043, nombre: "Pizza House", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pizza+House", whatsapp: "593000000038" },
+                { id: 1044, nombre: "Pizzeria Giorginos", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Giorginos", whatsapp: "593000000039" },
+                { id: 1045, nombre: "Play Wings", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Play+Wings", whatsapp: "593000000040" },
+                { id: 1046, nombre: "Pollo Alcalá", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pollo+Alcala", whatsapp: "593000000041" },
+                { id: 1047, nombre: "Pollo Campero", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pollo+Campero", whatsapp: "593000000042" },
+                { id: 1048, nombre: "Pollo Fenix", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pollo+Fenix", whatsapp: "593000000043" },
+                { id: 1049, nombre: "Pollo Fino", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pollo+Fino", whatsapp: "593000000044" },
+                { id: 1050, nombre: "Potato Tornado", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Potato+Tornado", whatsapp: "593000000045" },
+                { id: 1051, nombre: "Que Monada Bolones", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Que+Monada", whatsapp: "593000000046" },
+                { id: 1052, nombre: "Roll and Bowl", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Roll+and+Bowl", whatsapp: "593000000047" },
+                { id: 1053, nombre: "Saiyajin Sushi Rolls", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Saiyajin+Sushi", whatsapp: "593000000048" },
+                { id: 1054, nombre: "Salchipapas en Balde", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Salchipapas", whatsapp: "593000000049" },
+                { id: 1055, nombre: "Takumi EC", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Takumi+EC", whatsapp: "593000000050" },
+                { id: 1056, nombre: "Tokio Fast", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Tokio+Fast", whatsapp: "593000000051" },
+                { id: 1057, nombre: "Tribeca", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Tribeca", whatsapp: "593000000052" },
+                { id: 1058, nombre: "TUS Alitas Ambato", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=TUS+Alitas", whatsapp: "593000000053" },
+                { id: 1059, nombre: "Wings Garden", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Wings+Garden", whatsapp: "593000000054" },
+                { id: 1060, nombre: "Your Burger Fast Food", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Your+Burger", whatsapp: "593000000055" },
+
+                // ==================== SUPERMERCADOS ====================
                 { id: 301, nombre: "Mi Comisariato", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/457306695_537123862029395_1879722413412660847_n.jpg?stp=dst-jpg_p160x160_tt6&_nc_cat=1&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeHm6jRqej8coTDOXu3t4WpkLfhWWhb9UNAt-FZaFv1Q0KzuwDGR9ukZbSGEopGOoc0i4RtawK3IAHWMd53sFvgr&_nc_ohc=o1IkbA-MVjoQ7kNvwHt0s6H&_nc_oc=AdmdUkBWpjY06xIKpxwCVM076aSXBwoaHrIHA9iThtqxK8VkeA6ftSKJbzkJxvqtvuw&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=iBowEEK7Hrx-C84sJlBxeQ&_nc_ss=8&oh=00_AfygI4lpEQtrr1m4L6nsFr0R0POP8_FJbtRsIwANXP0QAQ&oe=69B41C64", whatsapp: "593985562172" },
                 { id: 302, nombre: "Supermaxi", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/290149688_5233291333396225_8083044231098832198_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHJhwRwIxk2ov27T94qJn5DKoc5U8bZi9kqhzlTxtmL2dPn4iD5GjN-IrOxF533A3DLoueVcdD6mgPqXDrRoCiW&_nc_ohc=_Jy5EbmmVcoQ7kNvwEyLGuF&_nc_oc=AdnLqBP2dbGwIx_iXI1fM0c-sSxnzTmv1ducSL9qHaMJ5mLy8L_1aQHrbctmWy1MenY&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=zp5aG8aRpRQws0haezlJnQ&_nc_ss=8&oh=00_AfzOSnBqKCw40mkRoL2neDQP4rmUaPDf8pj3AemNL5V5pw&oe=69B40AFA", whatsapp: "593985562172" },
                 { id: 303, nombre: "Supermercado San Francisco", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=San+Francisco", whatsapp: "593985562172" },
                 { id: 304, nombre: "Gran Akí", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/290130231_5143906062313435_4415335187114780834_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeF26USOfnbNMAbL7k1s_HeZ52KUFXjlN33nYpQVeOU3fS1sD7oul7T1Sk_HkAKo42tRU8TrSxsuNbxYlBSzBCpR&_nc_ohc=8lCaWKdFBCsQ7kNvwHiN_uH&_nc_oc=AdngwCpUngMtEmet2CYkVz8VxpibtyPhIAkJ3Kyy2E1CcRB078UpMrOaAsMfPZfhbK4&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=YYo81QsGzHxUVpeEvthanw&_nc_ss=8&oh=00_Afx_XSRKpsQaOKpoJrWfPPs-NIgXGmHPQItDzT5d3GTKKA&oe=69B4215E", whatsapp: "593985562172" },
                 { id: 305, nombre: "Tía", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/515358181_1140026501506869_7810775067598000396_n.jpg?stp=c85.0.1877.1877a_dst-jpg_s160x160_tt6&_nc_cat=1&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeEQ5SitvBJLP4J1-fhZjL_J509ukfzMKkHnT26R_MwqQe530AN80fWEGfUbXkmIuSdBTheoFEmF8Ycec6q7-Eby&_nc_ohc=iG4pyxLHYeYQ7kNvwFcfZge&_nc_oc=Adk3LJJrnXkcnQ0ssAA1ez7pocmaRbRumVDprGB6lWAimlMX7otImSt8qbK8RQ4SsWA&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=gKXarLKHmQ2AUa4NSpaaMQ&_nc_ss=8&oh=00_AfzOytHJHj-cTsXgnxh2ab9wlBpoQ2E90nLh8x-HYyP2Wg&oe=69B419B9", whatsapp: "593985562172" },
                 { id: 306, nombre: "Tuti", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/456876373_122190445472017962_5842124583331949689_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFr25B_Ku-l3EVVStNDjwqmrvUWdmXtVSCu9RZ2Ze1VIL4hX6lKxY2Nh438AuGYcyZ-z-vf2bYq22nFPHktdGsE&_nc_ohc=8cNYpwYjMZIQ7kNvwF93SWl&_nc_oc=Adl8Wv1bxRBtYJlfBT_uaf94iwvng9B2ZeVx9bPqYOjr3qD5wgFShiVz-19T2OFVKDw&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=UQ9HCGVxVnB-1W9wZXafPQ&_nc_ss=8&oh=00_Afzy-3g1iJycQ1HC4T-8BENYkhw3MpOXq95F6Pn82sycCw&oe=69B41526", whatsapp: "593985562172" },
-                // FARMACIA
+
+                // ==================== FARMACIAS ====================
                 { id: 350, nombre: "Farmacias Santa Martha", categoria: "farmacia", horario: "24 horas", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/240826552_6687502394608447_3702621369534526910_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEntz8Z-NdS9LaKG1Vc7PLAmuaIgl8ZWF2a5oiCXxlYXXNIhmxzlTUIet85i9oN6R4N79w7iL3s9HoFmoJXbTYH&_nc_ohc=gADip8iR3_kQ7kNvwF3goIr&_nc_oc=AdlKBPsxGWHvxldXh0cBMvLFMaBpB67eBOKwWr3KWWdwpaKfQQxP7df9OgYcVK_7E2Q&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=oAo0057Bkm4jxBfAOsosOQ&_nc_ss=8&oh=00_Afz1ilAJEOBau1oF33EKCKOFuiH4yvYFso4MUP4VQ2NNog&oe=69B41233", whatsapp: "593" },
                 { id: 351, nombre: "Farmacias Napoles", categoria: "farmacia", horario: "24 horas", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/348243530_258105006762620_8410729308657500174_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=103&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeG51IYHmWS0yDZRc7scLLkkc6-hkcRMVjhzr6GRxExWOHB7u-6Y2TINaykkyNkT_jrS7_55Orqk07KAcTe0rUuC&_nc_ohc=UP5QmCjvz3IQ7kNvwFE1qTe&_nc_oc=Adn8w2g-tohxfvmYrvTu2hTrd58iLxB2MA-XroAqxZC67lR4tZNXX_HCm4qbCJHulLc&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=XcvqJcxZGV4o8ouWHGY2_A&_nc_ss=8&oh=00_Afwia_g1iyPlYRkEcbxlKvNz09gYLdMsIrSvFG0UXUQKfg&oe=69B4293F", whatsapp: "593964201454" },        
-                // LICORERÍAS
+
+                // ==================== LICORERÍAS ====================
                 { id: 400, nombre: "Licores Premium", categoria: "licores", horario: "Lun-Dom 10:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Licores", whatsapp: "54115555666" },
                 { id: 401, nombre: "Bodega Don José", categoria: "licores", horario: "Lun-Dom 9:00-23:00", imagen: "https://via.placeholder.com/150/25D366/ffffff?text=Bodega", whatsapp: "54117777888" },
-                // FLORISTERÍAS
+
+                // ==================== FLORISTERÍAS ====================
                 { id: 450, nombre: "Deluxe Flower", categoria: "floristeria", horario: "Lun-Dom 8:00-17:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/343061243_230124802955710_6231036976151676677_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=107&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFiJvk0KmQZFqLseikrkxFJxwrhin7uVJjHCuGKfu5UmNtJURnJCVni_Mx5G3g2dtkqZfx9I4Yi7m3pMUAOcbLM&_nc_ohc=vnaOvmTrzI8Q7kNvwFDCxy6&_nc_oc=AdnO-r5s-S0RHFoAlohIwOUcluIEBaX8ILaNeRuSH2kalsL_Em2vm4s_JwT5isuO3Mw&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=UA8EkRsxADUaWPxBssPOZg&_nc_ss=8&oh=00_Afxrkb-jEG0IaVE2mKbRngMeUAekEmya_Ev28iIIIMPL-A&oe=69B419AF", whatsapp: "593963171852" },
                 { id: 451, nombre: "Flower", categoria: "floristeria", horario: "Lun-Dom 8:00-17:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/417222679_274478712320273_815891181823719382_n.jpg?stp=c0.0.720.720a_dst-jpg_s200x200_tt6&_nc_cat=100&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeEwGodWCJGVm9CdPbS0fTMhQhUe35OlrdZCFR7fk6Wt1r4lM4cUP0RPth24InAenhqSnJg_Aktqp8dlVsjBSY4D&_nc_ohc=t3b4Yu-WR4oQ7kNvwGno48b&_nc_oc=AdlTuf54Ros_2Tfu6JyhME9PckCZKqcv90wbD9CAXo0emdfQLJEHESeL6SsNdcQhkf4&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=Hzn0qM2Zs83Bm6gr-B3Svg&_nc_ss=8&oh=00_Afxn1WTEl0RN6MxC_dlILVNWIne_DyEvlUnjwhEMxsRd6g&oe=69B43E23", whatsapp: "593999804289" },
-                // OTROS
-                { id: 500, nombre: "Librería El Ateneo", categoria: "otros", horario: "Lun-Sáb 10:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Libreria", whatsapp: "54116666777" }
+
+                // ==================== OTROS ====================
+                { id: 500, nombre: "Librería El Ateneo", categoria: "otros", horario: "Lun-Sáb 10:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Libreria", whatsapp: "54116666777" },
+                { id: 6000, nombre: "Casa de Wendy", categoria: "otros", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Casa+Wendy", whatsapp: "593000000056" } // Nuevo
             ],
 
             productos: [
@@ -727,7 +796,7 @@
                 { id: 202, nombre: "Completa", descripcion: "Doble carne, cheddar, panceta", tipo: "simple", precio: 8.00, localId: 2, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Burger+Completa" },
                 // Berdi Grill (id 3)
                 { id: 301, nombre: "Helado artesanal", descripcion: "Dos sabores", tipo: "tamaño", precioBase: 3.50, localId: 3, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Helado", opciones: { "1/4 kg": 0, "1/2 kg": 3.00, "1 kg": 7.00 } },
-                // Alitas (id 4)
+                // Bolonche (id 4)
                 { id: 401, nombre: "Alitas 10 unidades", descripcion: "Con salsa", tipo: "salsa", precioBase: 7.00, localId: 4, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Alitas", opciones: { "BBQ": 0, "Picante": 0, "Miel mostaza": 0, "Buffalo": 0 } },
                 // SUPERMERCADOS
                 { id: 501, nombre: "Arroz", descripcion: "Arroz de primera", tipo: "peso", precioPorKg: 1.20, localId: 301, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Arroz" },
@@ -774,6 +843,9 @@
         const volverInicioGracias = document.getElementById('volver-inicio-gracias');
         const selectCategoriaMovil = document.getElementById('select-categoria-movil');
 
+        // Placeholder universal en base64 (imagen gris con texto)
+        const placeholderBase64 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23cccccc'/%3E%3Ctext x='50%25' y='50%25' font-size='16' text-anchor='middle' dy='.3em' fill='%23333'%3EImagen%3C/text%3E%3C/svg%3E";
+
         // Inicialización
         document.addEventListener('DOMContentLoaded', () => {
             try {
@@ -791,7 +863,7 @@
             toggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
         });
 
-        // Filtro de categorías
+        // Filtro de categorías con preventDefault para evitar recargas
         function initFiltro() {
             const botones = document.querySelectorAll('.btn-categoria');
 
@@ -809,7 +881,8 @@
             }
 
             botones.forEach(btn => {
-                btn.addEventListener('click', () => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
                     setCategoria(btn.dataset.categoria);
                 });
             });
@@ -830,7 +903,7 @@
             localesFiltrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
             container.innerHTML = localesFiltrados.map(local => `
                 <div class="card-local" onclick="seleccionarLocal(${local.id})">
-                    <img src="${local.imagen}" alt="${local.nombre}" class="imagen-local" onerror="this.src='https://via.placeholder.com/150/cccccc/ffffff?text=Local'">
+                    <img src="${local.imagen}" alt="${local.nombre}" class="imagen-local" onerror="this.onerror=null; this.src='${placeholderBase64}'">
                     <h3>${local.nombre}</h3>
                     <p>${local.horario}</p>
                 </div>
@@ -861,41 +934,46 @@
             document.getElementById('local-seleccionado').style.display = 'block';
             const productos = datosGOXPRESS.productos.filter(p => p.localId === localId);
             let html = `<h2>${local.nombre}</h2><div class="productos-grid">`;
-            productos.forEach(p => {
-                html += `<div class="card-producto" data-id="${p.id}">`;
-                html += `<img src="${p.imagen}" alt="${p.nombre}" class="imagen-producto" onerror="this.src='https://via.placeholder.com/300/cccccc/ffffff?text=Producto'">`;
-                html += `<h4>${p.nombre}</h4>`;
-                html += `<p style="font-size:0.8rem;">${p.descripcion || ''}</p>`;
+            if (productos.length === 0) {
+                html += `<p style="grid-column: 1/-1; text-align:center;">Próximamente disponibles</p>`;
+            } else {
+                productos.forEach(p => {
+                    html += `<div class="card-producto" data-id="${p.id}">`;
+                    html += `<img src="${p.imagen}" alt="${p.nombre}" class="imagen-producto" onerror="this.onerror=null; this.src='${placeholderBase64}'">`;
+                    html += `<h4>${p.nombre}</h4>`;
+                    html += `<p style="font-size:0.8rem;">${p.descripcion || ''}</p>`;
 
-                if (p.tipo === 'simple') {
-                    html += `<div class="precio-final">$${p.precio.toFixed(2)}</div>`;
-                    html += `<button class="btn-agregar" onclick="agregarSimple(${p.id}, '${p.nombre}', ${p.precio}, ${localId})">Agregar</button>`;
-                } else if (p.tipo === 'tamaño' || p.tipo === 'salsa') {
-                    html += `<div class="precio-base">Base: $${p.precioBase.toFixed(2)}</div>`;
-                    html += `<div class="opciones-producto"><label>${p.tipo === 'tamaño' ? 'Tamaño' : 'Salsa'}:</label> <select id="select-${p.id}">`;
-                    for (let [texto, inc] of Object.entries(p.opciones)) {
-                        html += `<option value="${inc}">${texto} ${p.tipo === 'tamaño' ? '(+$' + inc.toFixed(2) + ')' : ''}</option>`;
-                    }
-                    html += `</select></div>`;
-                    html += `<button class="btn-agregar" onclick="agregarConOpcion(${p.id}, '${p.nombre}', ${p.precioBase}, ${localId})">Agregar</button>`;
-                } else if (p.tipo === 'peso') {
-                    html += `<div class="precio-base">Precio por kg: $${p.precioPorKg.toFixed(2)}</div>`;
-                    html += `<div class="opciones-producto"><label>Cantidad (gramos):</label> <input type="number" id="peso-${p.id}" min="1" value="1000" step="100"></div>`;
-                    html += `<div class="precio-final" id="precio-${p.id}">$${p.precioPorKg.toFixed(2)}</div>`;
-                    html += `<button class="btn-agregar" onclick="agregarPorPeso(${p.id}, '${p.nombre}', ${p.precioPorKg}, ${localId})">Agregar</button>`;
-                    setTimeout(() => {
-                        const input = document.getElementById(`peso-${p.id}`);
-                        if (input) {
-                            input.addEventListener('input', function() {
-                                const gramos = parseFloat(this.value) || 0;
-                                const precio = (gramos / 1000) * p.precioPorKg;
-                                document.getElementById(`precio-${p.id}`).textContent = `$${precio.toFixed(2)}`;
-                            });
+                    if (p.tipo === 'simple') {
+                        html += `<div class="precio-final">$${p.precio.toFixed(2)}</div>`;
+                        html += `<button class="btn-agregar" onclick="agregarSimple(${p.id}, '${p.nombre}', ${p.precio}, ${localId})">Agregar</button>`;
+                    } else if (p.tipo === 'tamaño' || p.tipo === 'salsa') {
+                        html += `<div class="precio-base">Base: $${p.precioBase.toFixed(2)}</div>`;
+                        html += `<div class="opciones-producto"><label>${p.tipo === 'tamaño' ? 'Tamaño' : 'Salsa'}:</label> <select id="select-${p.id}">`;
+                        for (let [texto, inc] of Object.entries(p.opciones)) {
+                            html += `<option value="${inc}">${texto} ${p.tipo === 'tamaño' ? '(+$' + inc.toFixed(2) + ')' : ''}</option>`;
                         }
-                    }, 100);
-                }
-                html += `</div>`;
-            });
+                        html += `</select></div>`;
+                        html += `<button class="btn-agregar" onclick="agregarConOpcion(${p.id}, '${p.nombre}', ${p.precioBase}, ${localId})">Agregar</button>`;
+                    } else if (p.tipo === 'peso') {
+                        html += `<div class="precio-base">Precio por kg: $${p.precioPorKg.toFixed(2)}</div>`;
+                        html += `<div class="opciones-producto"><label>Cantidad (gramos):</label> <input type="number" id="peso-${p.id}" min="1" value="1000" step="100"></div>`;
+                        html += `<div class="precio-final" id="precio-${p.id}">$${p.precioPorKg.toFixed(2)}</div>`;
+                        html += `<button class="btn-agregar" onclick="agregarPorPeso(${p.id}, '${p.nombre}', ${p.precioPorKg}, ${localId})">Agregar</button>`;
+                        // Listener para actualizar precio al cambiar peso (se asigna después de insertar)
+                        setTimeout(() => {
+                            const input = document.getElementById(`peso-${p.id}`);
+                            if (input) {
+                                input.addEventListener('input', function() {
+                                    const gramos = parseFloat(this.value) || 0;
+                                    const precio = (gramos / 1000) * p.precioPorKg;
+                                    document.getElementById(`precio-${p.id}`).textContent = `$${precio.toFixed(2)}`;
+                                });
+                            }
+                        }, 100);
+                    }
+                    html += `</div>`;
+                });
+            }
             html += `</div>`;
             document.getElementById('productos-local').innerHTML = html;
         };
@@ -1025,13 +1103,15 @@
             }
         }
 
-        volverLocalesBtn.addEventListener('click', () => {
+        volverLocalesBtn.addEventListener('click', (e) => {
+            e.preventDefault();
             document.getElementById('locales-container').classList.remove('oculto');
             document.getElementById('local-seleccionado').style.display = 'none';
             localSeleccionadoActual = null;
         });
 
-        siguienteBtn.addEventListener('click', () => {
+        siguienteBtn.addEventListener('click', (e) => {
+            e.preventDefault();
             if (carrito.length > 0) {
                 mostrarVista('checkout');
                 actualizarResumenCheckout();
@@ -1042,7 +1122,6 @@
 
         function actualizarResumenCheckout() {
             const totalProductos = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
-            // Ya no se calcula costo de envío aquí, se ingresará manualmente después
 
             let html = '<h3>📋 Resumen de tu pedido</h3>';
             carrito.forEach((item, index) => {
@@ -1129,11 +1208,13 @@
             mostrarVista('espera');
         });
 
-        volverInicioCheckout.addEventListener('click', () => {
+        volverInicioCheckout.addEventListener('click', (e) => {
+            e.preventDefault();
             mostrarVista('inicio');
         });
 
-        enviarAlLocal.addEventListener('click', () => {
+        enviarAlLocal.addEventListener('click', (e) => {
+            e.preventDefault();
             if (!pedidoPendiente) {
                 alert('No hay pedido pendiente');
                 return;
@@ -1189,12 +1270,18 @@
             mostrarVista('gracias');
         });
 
-        volverInicioGracias.addEventListener('click', () => {
+        volverInicioGracias.addEventListener('click', (e) => {
+            e.preventDefault();
             mostrarVista('inicio');
         });
 
-        vaciarFlotante.addEventListener('click', vaciarCarrito);
-        vaciarCheckout.addEventListener('click', () => {
+        vaciarFlotante.addEventListener('click', (e) => {
+            e.preventDefault();
+            vaciarCarrito();
+        });
+
+        vaciarCheckout.addEventListener('click', (e) => {
+            e.preventDefault();
             vaciarCarrito();
             if (carrito.length === 0) mostrarVista('inicio');
         });
