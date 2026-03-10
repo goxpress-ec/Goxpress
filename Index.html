@@ -193,6 +193,27 @@
             display: inline-block;
         }
 
+        /* Buscador */
+        .buscador-container {
+            margin: 1rem 0;
+            text-align: center;
+        }
+        .buscador-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 0.7rem 1rem;
+            border: 1px solid var(--gris-borde);
+            border-radius: 30px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+        }
+        .buscador-input:focus {
+            border-color: var(--whatsapp);
+            box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.2);
+        }
+
         .filtro-categorias {
             display: flex;
             flex-wrap: wrap;
@@ -571,6 +592,11 @@
     <div id="vista-inicio" class="container vista activa">
         <div class="titulo-locales">🌟 Nuestros Locales Aliados — ¡Pide con toda confianza! 🌟</div>
         
+        <!-- BUSCADOR AÑADIDO -->
+        <div class="buscador-container">
+            <input type="text" id="buscador-local" class="buscador-input" placeholder="🔍 Buscar local por nombre...">
+        </div>
+
         <div class="filtro-categorias" id="filtro-categorias">
             <button class="btn-categoria activo" data-categoria="todos" type="button">Todos</button>
             <button class="btn-categoria" data-categoria="comida" type="button">Comida</button>
@@ -828,6 +854,7 @@
         let localSeleccionadoActual = null;
         let vistaActual = 'inicio';
         let categoriaActiva = 'todos';
+        let searchTerm = ''; // Variable para el buscador
 
         // Elementos del DOM
         const toggle = document.getElementById('dark-mode-toggle');
@@ -840,6 +867,7 @@
         const enviarAlLocal = document.getElementById('enviar-al-local');
         const volverInicioGracias = document.getElementById('volver-inicio-gracias');
         const selectCategoriaMovil = document.getElementById('select-categoria-movil');
+        const buscadorInput = document.getElementById('buscador-local');
 
         // Placeholder universal en base64 (imagen gris con texto)
         const placeholderBase64 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23cccccc'/%3E%3Ctext x='50%25' y='50%25' font-size='16' text-anchor='middle' dy='.3em' fill='%23333'%3EImagen%3C/text%3E%3C/svg%3E";
@@ -890,15 +918,33 @@
             });
         }
 
-        // Mostrar locales según filtro y ordenados alfabéticamente
+        // Buscador: escuchar input
+        if (buscadorInput) {
+            buscadorInput.addEventListener('input', (e) => {
+                searchTerm = e.target.value;
+                mostrarLocales();
+            });
+        }
+
+        // Mostrar locales según filtro, categoría y búsqueda
         function mostrarLocales() {
             const container = document.getElementById('locales-container');
             let localesFiltrados = datosGOXPRESS.locales;
+
+            // Filtro por categoría
             if (categoriaActiva !== 'todos') {
-                localesFiltrados = datosGOXPRESS.locales.filter(l => l.categoria === categoriaActiva);
+                localesFiltrados = localesFiltrados.filter(l => l.categoria === categoriaActiva);
             }
+
+            // Filtro por búsqueda
+            if (searchTerm.trim() !== '') {
+                const term = searchTerm.toLowerCase().trim();
+                localesFiltrados = localesFiltrados.filter(l => l.nombre.toLowerCase().includes(term));
+            }
+
             // Ordenar alfabéticamente por nombre
             localesFiltrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
             container.innerHTML = localesFiltrados.map(local => `
                 <div class="card-local" onclick="seleccionarLocal(${local.id})">
                     <img src="${local.imagen}" alt="${local.nombre}" class="imagen-local" onerror="this.onerror=null; this.src='${placeholderBase64}'">
@@ -930,6 +976,11 @@
             localSeleccionadoActual = localId;
             document.getElementById('locales-container').classList.add('oculto');
             document.getElementById('local-seleccionado').style.display = 'block';
+            // Ocultar buscador y filtros al entrar a un local
+            document.querySelector('.buscador-container').style.display = 'none';
+            document.querySelector('.filtro-categorias').style.display = 'none';
+            document.getElementById('select-categoria-movil').style.display = 'none';
+
             const productos = datosGOXPRESS.productos.filter(p => p.localId === localId);
             let html = `<h2>${local.nombre}</h2><div class="productos-grid">`;
             if (productos.length === 0) {
@@ -1106,6 +1157,12 @@
             document.getElementById('locales-container').classList.remove('oculto');
             document.getElementById('local-seleccionado').style.display = 'none';
             localSeleccionadoActual = null;
+            // Mostrar buscador y filtros nuevamente
+            document.querySelector('.buscador-container').style.display = 'block';
+            document.querySelector('.filtro-categorias').style.display = 'flex';
+            document.getElementById('select-categoria-movil').style.display = 'none'; // se mostrará según media query
+            // Refrescar locales (por si cambió algo)
+            mostrarLocales();
         });
 
         siguienteBtn.addEventListener('click', (e) => {
@@ -1289,6 +1346,15 @@
             document.querySelectorAll('.vista').forEach(v => v.classList.remove('activa'));
             document.getElementById(`vista-${vistaId}`).classList.add('activa');
             if (vistaId === 'inicio') {
+                // Mostrar buscador y filtros al volver al inicio
+                document.querySelector('.buscador-container').style.display = 'block';
+                document.querySelector('.filtro-categorias').style.display = 'flex';
+                // El select móvil se maneja con media query, pero aseguramos que no se muestre si no es necesario
+                if (window.innerWidth <= 600) {
+                    document.getElementById('select-categoria-movil').style.display = 'block';
+                } else {
+                    document.getElementById('select-categoria-movil').style.display = 'none';
+                }
                 mostrarLocales();
                 document.getElementById('locales-container').classList.remove('oculto');
                 document.getElementById('local-seleccionado').style.display = 'none';
@@ -1302,10 +1368,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
