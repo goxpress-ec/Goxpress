@@ -773,7 +773,7 @@
                 { id: 53, nombre: "Pollo Fino", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Pollo+Fino", whatsapp: "593000000044" },
                 { id: 54, nombre: "Potato Tornado", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Potato+Tornado", whatsapp: "593000000045" },
                 { id: 55, nombre: "Que Monada Bolones", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Que+Monada", whatsapp: "593000000046" },
-                { id: 56, nombre: "Roll and Bowl", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Roll+and+Bowl", whatsapp: "593000000047" },
+                { id: 56, nombre: "Roll and Bowl", categoria: "comida", horario: "Lun-Dom 13:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/333306512_546575760786886_5735414084607118416_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGI8i33-it5enRHYXqIF2HAFZPC_ZVIDHoVk8L9lUgMeg1hEB0YBZBXSlsNHYgiAlyQmalHfSHZQBJCs_C6gYOG&_nc_ohc=VJhUfyWa2DgQ7kNvwErGOtb&_nc_oc=AdmcOg3njWnyDpOLY4YBTdg6yDk0PSe82oLf1Fb-u1Te9KkvxgERKTuZ0Za5wAGsv1Q&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=mlt6fHPt98tYxndUeeQk8Q&_nc_ss=8&oh=00_AfzwPiTo5d3TsIrtagBrLVvykS8HP5RI1YSGtGGzI4YvfQ&oe=69B6A20B", whatsapp: "593995192441" },
                 { id: 57, nombre: "Saiyajin Sushi Rolls", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Saiyajin+Sushi", whatsapp: "593000000048" },
                 { id: 58, nombre: "Salchipapas en Balde", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Salchipapas", whatsapp: "593000000049" },
                 { id: 59, nombre: "Takumi EC", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Takumi+EC", whatsapp: "593000000050" },
@@ -811,6 +811,7 @@
 
             productos: [
                 // ALAS 8 Ambato (id 1)
+                { id: 201, nombre: "Clásica", descripcion: "Carne, lechuga, tomate", tipo: "simple", precio: 5.50, localId: 2, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Burger+Clasica" },
                 { id: 101, nombre: "Muzzarella", descripcion: "Muzzarella, aceitunas", tipo: "tamaño", precioBase: 8.00, localId: 1, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Pizza+Muzza", opciones: { "Personal": 0, "Mediana": 2.50, "Grande": 5.00 } },
                 { id: 102, nombre: "Napolitana", descripcion: "Muzzarella, tomate, ajo", tipo: "tamaño", precioBase: 9.50, localId: 1, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Pizza+Napo", opciones: { "Personal": 0, "Mediana": 2.50, "Grande": 5.00 } },
                 // Apapear&Sweat (id 2)
@@ -822,7 +823,10 @@
                 { id: 401, nombre: "Alitas 10 unidades", descripcion: "Con salsa", tipo: "salsa", precioBase: 7.00, localId: 4, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Alitas", opciones: { "BBQ": 0, "Picante": 0, "Miel mostaza": 0, "Buffalo": 0 } },
                 // Bolonche (id 5)
                 { id: 401, nombre: "Alitas 10 unidades", descripcion: "Con salsa", tipo: "salsa", precioBase: 7.00, localId: 5, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Alitas", opciones: { "BBQ": 0, "Picante": 0, "Miel mostaza": 0, "Buffalo": 0 } },
-                // SUPERMERCADOS
+               // El Rincon de las Alitas (id 24)
+                { id: 201, nombre: "Clásica", descripcion: "Carne, lechuga, tomate", tipo: "simple", precio: 5.50, localId: 2, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Burger+Clasica" },
+                { id: 101, nombre: "Muzzarella", descripcion: "Muzzarella, aceitunas", tipo: "tamaño", precioBase: 8.00, localId: 1, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Pizza+Muzza", opciones: { "Personal": 0, "Mediana": 2.50, "Grande": 5.00 } },
+                
                 // SUPERMERCADOS
                 { id: 501, nombre: "Arroz", descripcion: "Arroz de primera", tipo: "peso", precioPorKg: 1.20, localId: 301, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Arroz" },
                 { id: 502, nombre: "Azúcar", descripcion: "Azúcar refinada", tipo: "peso", precioPorKg: 1.10, localId: 302, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Azucar" },
@@ -1369,6 +1373,7 @@
     </script>
 </body>
 </html>
+
 
 
 
