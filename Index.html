@@ -274,6 +274,22 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
+        /* ===== NUEVO: Estilo para locales sin menú ===== */
+        .card-local.sin-menu {
+            filter: grayscale(0.8);
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none; /* Deshabilita completamente el clic */
+            transition: none;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .card-local.sin-menu h3,
+        .card-local.sin-menu p {
+            color: #999;
+        }
+
         .imagen-local {
             width: 100px;
             height: 100px;
@@ -853,6 +869,9 @@
         // ========== FIN CONFIGURACIÓN ===============================
         // ============================================================
 
+        // <-- NUEVO: Set de IDs de locales que tienen productos (menú) -->
+        const localesConMenu = new Set(datosGOXPRESS.productos.map(p => p.localId));
+
         // Variables globales
         let carrito = JSON.parse(localStorage.getItem('carrito')) || [];
         let pedidoPendiente = JSON.parse(sessionStorage.getItem('pedidoPendiente')) || null;
@@ -917,13 +936,20 @@
                 (searchTerm.trim() === '' || l.nombre.toLowerCase().includes(searchTerm.toLowerCase().trim()))
             );
             localesFiltrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
-            container.innerHTML = localesFiltrados.map(local => `
-                <div class="card-local" onclick="seleccionarLocal(${local.id})">
-                    <img src="${local.imagen}" alt="${local.nombre}" class="imagen-local" onerror="this.onerror=null; this.src='${placeholderBase64}'">
-                    <h3>${local.nombre}</h3>
-                    <p>${local.horario}</p>
-                </div>
-            `).join('');
+            
+            // <-- NUEVO: Generar HTML con clase condicional y deshabilitar clic si no tiene menú -->
+            container.innerHTML = localesFiltrados.map(local => {
+                const tieneMenu = localesConMenu.has(local.id);
+                return `
+                    <div class="card-local ${tieneMenu ? '' : 'sin-menu'}" 
+                         onclick="${tieneMenu ? `seleccionarLocal(${local.id})` : 'return false;'}" 
+                         ${!tieneMenu ? 'title="Este local aún no tiene menú disponible"' : ''}>
+                        <img src="${local.imagen}" alt="${local.nombre}" class="imagen-local" onerror="this.onerror=null; this.src='${placeholderBase64}'">
+                        <h3>${local.nombre}</h3>
+                        <p>${local.horario}</p>
+                    </div>
+                `;
+            }).join('');
         }
 
         window.seleccionarLocal = function(localId) {
@@ -950,7 +976,7 @@
             const productos = datosGOXPRESS.productos.filter(p => p.localId === localId);
             let html = `<h2>${local.nombre}</h2><div class="productos-grid">`;
             if (productos.length === 0) {
-                html += `<p style="grid-column: 1/-1; text-align:center;">Próximamente disponibles</p>`;
+                html += `<p style="grid-column: 1/-1; text-align:center;">🚫 Este local aún no tiene productos disponibles. ¡Vuelve pronto!</p>`;
             } else {
                 productos.forEach(p => {
                     html += `<div class="card-producto" data-id="${p.id}">`;
@@ -960,7 +986,7 @@
 
                     if (p.tipo === 'simple') {
                         html += `<div class="precio-final">$${p.precio.toFixed(2)}</div>`;
-                        html += `<button class="btn-agregar" onclick="agregarSimple(${p.id}, '${p.nombre}', ${p.precio}, ${localId})">Agregar</button>`;
+                        html += `<button class="btn-agregar" onclick="agregarSimple(${p.id}, '${p.nombre}', ${p.precio}, ${localId}, '${p.descripcion || ''}')">Agregar</button>`;
                     }
                     else if (p.tipo === 'tamaño' || p.tipo === 'salsa') {
                         html += `<div class="precio-base">Base: $${p.precioBase.toFixed(2)}</div>`;
@@ -969,13 +995,13 @@
                             html += `<option value="${inc}">${texto} ${p.tipo === 'tamaño' ? '(+$' + inc.toFixed(2) + ')' : ''}</option>`;
                         }
                         html += `</select></div>`;
-                        html += `<button class="btn-agregar" onclick="agregarConOpcion(${p.id}, '${p.nombre}', ${p.precioBase}, ${localId})">Agregar</button>`;
+                        html += `<button class="btn-agregar" onclick="agregarConOpcion(${p.id}, '${p.nombre}', ${p.precioBase}, ${localId}, '${p.descripcion || ''}')">Agregar</button>`;
                     }
                     else if (p.tipo === 'peso') {
                         html += `<div class="precio-base">Precio por kg: $${p.precioPorKg.toFixed(2)}</div>`;
                         html += `<div class="opciones-producto"><label>Cantidad (gramos):</label> <input type="number" id="peso-${p.id}" min="1" value="1000" step="100"></div>`;
                         html += `<div class="precio-final" id="precio-${p.id}">$${p.precioPorKg.toFixed(2)}</div>`;
-                        html += `<button class="btn-agregar" onclick="agregarPorPeso(${p.id}, '${p.nombre}', ${p.precioPorKg}, ${localId})">Agregar</button>`;
+                        html += `<button class="btn-agregar" onclick="agregarPorPeso(${p.id}, '${p.nombre}', ${p.precioPorKg}, ${localId}, '${p.descripcion || ''}')">Agregar</button>`;
                         setTimeout(() => {
                             const input = document.getElementById(`peso-${p.id}`);
                             if (input) input.addEventListener('input', function() {
@@ -984,25 +1010,21 @@
                             });
                         }, 100);
                     }
-                    // ========== NUEVO: TIPO PERSONALIZABLE ==========
                     else if (p.tipo === 'personalizable') {
                         html += `<div class="precio-base">Base: $${p.precioBase.toFixed(2)}</div>`;
-                        // Selector de tamaño
                         html += `<div class="opciones-producto"><label>Tamaño:</label> <select id="tamano-${p.id}" class="tamano-select" data-preciobase="${p.precioBase}">`;
                         for (let [tam, inc] of Object.entries(p.tamanos)) {
                             html += `<option value="${inc}">${tam} (+$${inc.toFixed(2)})</option>`;
                         }
                         html += `</select></div>`;
-                        // Ingredientes con checkboxes
                         html += `<div class="ingredientes-container" data-max="${p.maxIngredientes}">`;
                         p.ingredientes.forEach(ing => {
                             html += `<label style="display:block; font-size:0.9rem;"><input type="checkbox" class="ingrediente-check" value="${ing}"> ${ing}</label>`;
                         });
                         html += `</div>`;
                         html += `<div class="precio-final" id="precio-${p.id}">$${p.precioBase.toFixed(2)}</div>`;
-                        html += `<button class="btn-agregar" onclick="agregarPersonalizable(${p.id}, '${p.nombre}', ${p.precioBase}, ${p.localId})">Agregar</button>`;
+                        html += `<button class="btn-agregar" onclick="agregarPersonalizable(${p.id}, '${p.nombre}', ${p.precioBase}, ${p.localId}, '${p.descripcion || ''}')">Agregar</button>`;
 
-                        // Eventos dinámicos
                         setTimeout(() => {
                             const select = document.getElementById(`tamano-${p.id}`);
                             if (select) {
@@ -1035,16 +1057,16 @@
             document.getElementById('productos-local').innerHTML = html;
         };
 
-        // Funciones de agregado
-        window.agregarSimple = function(id, nombre, precio, localId) {
+        // Funciones de agregado (ahora reciben también descripcion)
+        window.agregarSimple = function(id, nombre, precio, localId, descripcion = '') {
             if (carrito.length > 0 && carrito[0].localId !== localId) { alert("Solo puedes pedir de un local a la vez."); return; }
-            const item = carrito.find(i => i.id === id && !i.opcion && !i.gramos);
+            const item = carrito.find(i => i.id === id && !i.opcion && !i.gramos && !i.tamano);
             if (item) item.cantidad++;
-            else carrito.push({ id, nombre, precio, localId, cantidad: 1, opcion: null, gramos: null });
+            else carrito.push({ id, nombre, precio, localId, cantidad: 1, opcion: null, gramos: null, tamano: null, ingredientes: null, descripcion });
             guardarCarrito();
         };
 
-        window.agregarConOpcion = function(id, nombreBase, precioBase, localId) {
+        window.agregarConOpcion = function(id, nombreBase, precioBase, localId, descripcion = '') {
             const select = document.getElementById(`select-${id}`);
             if (!select) return;
             const incremento = parseFloat(select.value);
@@ -1053,11 +1075,11 @@
             if (carrito.length > 0 && carrito[0].localId !== localId) { alert("Solo puedes pedir de un local a la vez."); return; }
             const itemExistente = carrito.find(i => i.id === id && i.opcion === opcionTexto);
             if (itemExistente) itemExistente.cantidad++;
-            else carrito.push({ id, nombre: nombreBase + ' (' + opcionTexto + ')', precio: precioFinal, localId, cantidad: 1, opcion: opcionTexto, gramos: null });
+            else carrito.push({ id, nombre: nombreBase + ' (' + opcionTexto + ')', precio: precioFinal, localId, cantidad: 1, opcion: opcionTexto, gramos: null, tamano: null, ingredientes: null, descripcion });
             guardarCarrito();
         };
 
-        window.agregarPorPeso = function(id, nombreBase, precioPorKg, localId) {
+        window.agregarPorPeso = function(id, nombreBase, precioPorKg, localId, descripcion = '') {
             const input = document.getElementById(`peso-${id}`);
             if (!input) return;
             const gramos = parseFloat(input.value) || 0;
@@ -1066,12 +1088,11 @@
             if (carrito.length > 0 && carrito[0].localId !== localId) { alert("Solo puedes pedir de un local a la vez."); return; }
             const itemExistente = carrito.find(i => i.id === id && i.gramos === gramos);
             if (itemExistente) itemExistente.cantidad++;
-            else carrito.push({ id, nombre: `${nombreBase} (${gramos}g)`, precio, localId, cantidad: 1, gramos, opcion: null });
+            else carrito.push({ id, nombre: `${nombreBase} (${gramos}g)`, precio, localId, cantidad: 1, gramos, opcion: null, tamano: null, ingredientes: null, descripcion });
             guardarCarrito();
         };
 
-        // ========== NUEVA FUNCIÓN PERSONALIZABLE ==========
-        window.agregarPersonalizable = function(id, nombreBase, precioBase, localId) {
+        window.agregarPersonalizable = function(id, nombreBase, precioBase, localId, descripcion = '') {
             const select = document.getElementById(`tamano-${id}`);
             if (!select) return;
             const incremento = parseFloat(select.value);
@@ -1112,7 +1133,8 @@
                     localId: localId,
                     cantidad: 1,
                     tamano: tamanoTexto,
-                    ingredientes: ingredientes
+                    ingredientes: ingredientes,
+                    descripcion: descripcion
                 });
             }
             guardarCarrito();
@@ -1160,7 +1182,7 @@
             localSeleccionadoActual = null;
             document.querySelector('.buscador-container').style.display = 'block';
             document.querySelector('.filtro-categorias').style.display = 'flex';
-            document.getElementById('select-categoria-movil').style.display = 'none';
+            document.getElementById('select-categoria-movil').style.display = window.innerWidth <= 600 ? 'block' : 'none';
             mostrarLocales();
         });
 
@@ -1178,7 +1200,9 @@
             const totalProductos = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
             let html = '<h3>📋 Resumen de tu pedido</h3>';
             carrito.forEach((item, index) => {
-                html += `<div class="item-resumen"><div class="item-info">${item.nombre} x${item.cantidad} = $${(item.precio * item.cantidad).toFixed(2)}</div><div class="item-acciones"><button class="btn-eliminar" onclick="eliminarPorIndice(${index})" title="Eliminar">🗑️</button></div></div>`;
+                // <-- NUEVO: Mostrar descripción en el resumen si existe -->
+                const desc = item.descripcion ? `<br><small>${item.descripcion}</small>` : '';
+                html += `<div class="item-resumen"><div class="item-info">${item.nombre} x${item.cantidad} = $${(item.precio * item.cantidad).toFixed(2)}${desc}</div><div class="item-acciones"><button class="btn-eliminar" onclick="eliminarPorIndice(${index})" title="Eliminar">🗑️</button></div></div>`;
             });
             html += `<p style="margin-top:0.5rem;"><strong>💰 Subtotal: $${totalProductos.toFixed(2)}</strong></p>`;
             html += `<p><em>🚚 El costo de envío será calculado por el administrador y lo podrás ingresar en el siguiente paso.</em></p>`;
@@ -1215,12 +1239,17 @@
             sessionStorage.setItem('pedidoPendiente', JSON.stringify(pedido));
             pedidoPendiente = pedido;
 
+            // Mensaje para administrador (incluye descripción)
             let mensajeAdmin = `🔔 *NUEVO PEDIDO PENDIENTE - GOXPRESS* 🔔\n\n👤 *Cliente:* ${nombre}\n🆔 *Cédula:* ${cedula}\n📞 *Teléfono:* ${telefonoCompleto}\n📍 *Dirección:* ${direccion}\n\n🛍️ *Productos solicitados:*\n`;
             for (const localId in itemsPorLocal) {
                 const local = datosGOXPRESS.locales.find(l => l.id == localId);
                 const items = itemsPorLocal[localId];
                 mensajeAdmin += `\n🏪 *${local.nombre}:*\n`;
-                items.forEach(i => mensajeAdmin += `   • ${i.nombre} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}\n`);
+                items.forEach(i => {
+                    // Incluir descripción si existe
+                    const desc = i.descripcion ? ` (${i.descripcion})` : '';
+                    mensajeAdmin += `   • ${i.nombre}${desc} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}\n`;
+                });
             }
             mensajeAdmin += `\n💳 *Método de pago:* ${metodoPago}\n\n👉 *Por favor, calcula el costo de envío y comunícalo al cliente.*\n🙏 *Gracias por tu ayuda!*`;
 
@@ -1253,8 +1282,12 @@
             const totalLocal = subtotalLocal + costoEnvio;
             const pagoNota = totalLocal > 30 ? `\n💳 *IMPORTANTE:* El total supera los $30, el pago debe realizarse por transferencia bancaria.` : '';
 
+            // Mensaje para el local (incluye descripción)
             let mensajeLocal = `🔔 *NUEVO PEDIDO GOXPRESS - ${local.nombre}* 🔔\n\n👤 *Cliente:* ${pedidoPendiente.nombre}\n🆔 *Cédula:* ${pedidoPendiente.cedula}\n📞 *Teléfono:* ${pedidoPendiente.telefono}\n📍 *Dirección de entrega:* ${pedidoPendiente.direccion}\n\n🛍️ *Detalle del pedido:*\n`;
-            items.forEach(i => mensajeLocal += `   • ${i.nombre} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}\n`);
+            items.forEach(i => {
+                const desc = i.descripcion ? ` (${i.descripcion})` : '';
+                mensajeLocal += `   • ${i.nombre}${desc} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}\n`;
+            });
             mensajeLocal += `\n💰 *Subtotal:* $${subtotalLocal.toFixed(2)}\n🚚 *Costo de envío:* $${costoEnvio.toFixed(2)}\n💵 *Total a pagar:* $${totalLocal.toFixed(2)}\n💳 *Método de pago:* ${pedidoPendiente.metodoPago}${pagoNota}\n\n🛵 *Un Rider de GOXPRESS pasará a recoger el pedido en 5-10 minutos. Una vez en camino, nos contactaremos para informar el estado.*\n\n✅ *¡Muchas gracias por tu colaboración!* 🙌`;
 
             window.open(`https://wa.me/${local.whatsapp}?text=${encodeURIComponent(mensajeLocal)}`, '_blank');
@@ -1303,8 +1336,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
