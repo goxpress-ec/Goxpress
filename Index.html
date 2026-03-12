@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GOXPRESS - Pedidos al instante</title>
     <style>
-        /* ===== PALETA DE COLORES (sin cambios) ===== */
+        /* ===== PALETA DE COLORES ===== */
         :root {
             --blanco: #ffffff;
             --fondo-claro: #f8fafd;
@@ -274,12 +274,12 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
-        /* ===== NUEVO: Estilo para locales sin menú ===== */
+        /* Estilo para locales sin menú */
         .card-local.sin-menu {
             filter: grayscale(0.8);
             opacity: 0.6;
             cursor: not-allowed;
-            pointer-events: none; /* Deshabilita completamente el clic */
+            pointer-events: none;
             transition: none;
             transform: none !important;
             box-shadow: none !important;
@@ -726,7 +726,7 @@
         const TELEFONO_CONTACTO1 = '593994710370';
         const TELEFONO_CONTACTO2 = '593985562172';
 
-        // ===== LOCALES (completos, como en tu código original) =====
+        // ===== LOCALES =====
         const datosGOXPRESS = {
             locales: [
                 // ==================== COMIDA ====================
@@ -882,7 +882,7 @@
         // ========== FIN CONFIGURACIÓN ===============================
         // ============================================================
 
-        // <-- NUEVO: Set de IDs de locales que tienen productos (menú) -->
+        // Set de IDs de locales que tienen productos (menú)
         const localesConMenu = new Set(datosGOXPRESS.productos.map(p => p.localId));
 
         // Variables globales
@@ -948,10 +948,19 @@
                 (categoriaActiva === 'todos' || l.categoria === categoriaActiva) &&
                 (searchTerm.trim() === '' || l.nombre.toLowerCase().includes(searchTerm.toLowerCase().trim()))
             );
-            localesFiltrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
             
-            // <-- NUEVO: Generar HTML con clase condicional y deshabilitar clic si no tiene menú -->
-            container.innerHTML = localesFiltrados.map(local => {
+            // Separar en dos grupos: con menú y sin menú
+            const conMenu = localesFiltrados.filter(l => localesConMenu.has(l.id));
+            const sinMenu = localesFiltrados.filter(l => !localesConMenu.has(l.id));
+            
+            // Ordenar alfabéticamente cada grupo
+            conMenu.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            sinMenu.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            
+            // Unir los grupos (primero con menú, luego sin menú)
+            const localesOrdenados = conMenu.concat(sinMenu);
+            
+            container.innerHTML = localesOrdenados.map(local => {
                 const tieneMenu = localesConMenu.has(local.id);
                 return `
                     <div class="card-local ${tieneMenu ? '' : 'sin-menu'}" 
@@ -1070,7 +1079,7 @@
             document.getElementById('productos-local').innerHTML = html;
         };
 
-        // Funciones de agregado (ahora reciben también descripcion)
+        // Funciones de agregado
         window.agregarSimple = function(id, nombre, precio, localId, descripcion = '') {
             if (carrito.length > 0 && carrito[0].localId !== localId) { alert("Solo puedes pedir de un local a la vez."); return; }
             const item = carrito.find(i => i.id === id && !i.opcion && !i.gramos && !i.tamano);
@@ -1213,7 +1222,6 @@
             const totalProductos = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
             let html = '<h3>📋 Resumen de tu pedido</h3>';
             carrito.forEach((item, index) => {
-                // <-- NUEVO: Mostrar descripción en el resumen si existe -->
                 const desc = item.descripcion ? `<br><small>${item.descripcion}</small>` : '';
                 html += `<div class="item-resumen"><div class="item-info">${item.nombre} x${item.cantidad} = $${(item.precio * item.cantidad).toFixed(2)}${desc}</div><div class="item-acciones"><button class="btn-eliminar" onclick="eliminarPorIndice(${index})" title="Eliminar">🗑️</button></div></div>`;
             });
@@ -1252,14 +1260,13 @@
             sessionStorage.setItem('pedidoPendiente', JSON.stringify(pedido));
             pedidoPendiente = pedido;
 
-            // Mensaje para administrador (incluye descripción)
+            // Mensaje para administrador
             let mensajeAdmin = `🔔 *NUEVO PEDIDO PENDIENTE - GOXPRESS* 🔔\n\n👤 *Cliente:* ${nombre}\n🆔 *Cédula:* ${cedula}\n📞 *Teléfono:* ${telefonoCompleto}\n📍 *Dirección:* ${direccion}\n\n🛍️ *Productos solicitados:*\n`;
             for (const localId in itemsPorLocal) {
                 const local = datosGOXPRESS.locales.find(l => l.id == localId);
                 const items = itemsPorLocal[localId];
                 mensajeAdmin += `\n🏪 *${local.nombre}:*\n`;
                 items.forEach(i => {
-                    // Incluir descripción si existe
                     const desc = i.descripcion ? ` (${i.descripcion})` : '';
                     mensajeAdmin += `   • ${i.nombre}${desc} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}\n`;
                 });
@@ -1295,7 +1302,7 @@
             const totalLocal = subtotalLocal + costoEnvio;
             const pagoNota = totalLocal > 30 ? `\n💳 *IMPORTANTE:* El total supera los $30, el pago debe realizarse por transferencia bancaria.` : '';
 
-            // Mensaje para el local (incluye descripción)
+            // Mensaje para el local
             let mensajeLocal = `🔔 *NUEVO PEDIDO GOXPRESS - ${local.nombre}* 🔔\n\n👤 *Cliente:* ${pedidoPendiente.nombre}\n🆔 *Cédula:* ${pedidoPendiente.cedula}\n📞 *Teléfono:* ${pedidoPendiente.telefono}\n📍 *Dirección de entrega:* ${pedidoPendiente.direccion}\n\n🛍️ *Detalle del pedido:*\n`;
             items.forEach(i => {
                 const desc = i.descripcion ? ` (${i.descripcion})` : '';
@@ -1349,8 +1356,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
