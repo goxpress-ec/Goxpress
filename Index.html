@@ -306,6 +306,23 @@
             font-size: 1.1rem;
         }
 
+        /* Estado abierto/cerrado */
+        .estado-local {
+            display: inline-block;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            margin-top: 0.3rem;
+        }
+        .estado-local.abierto {
+            background-color: #28a745;
+        }
+        .estado-local.cerrado {
+            background-color: #dc3545;
+        }
+
         .locales-grid.oculto {
             display: none;
         }
@@ -540,6 +557,74 @@
             text-align: center;
         }
 
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.visible {
+            display: flex;
+        }
+        .modal-contenido {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            position: relative;
+            border: 1px solid var(--gris-borde);
+        }
+        .modal-contenido h3 {
+            margin-bottom: 1rem;
+            color: var(--text-color);
+        }
+        .modal-contenido .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .modal-acciones {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        .modal-acciones button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .modal-acciones .btn-primary {
+            background-color: var(--whatsapp);
+            color: white;
+        }
+        .modal-acciones .btn-primary:hover {
+            background-color: var(--whatsapp-hover);
+        }
+        .modal-acciones .btn-secundario {
+            background-color: var(--gris-fondo-secundario);
+            color: var(--text-color);
+        }
+        .modal-acciones .btn-secundario:hover {
+            background-color: var(--gris-hover-secundario);
+        }
+        .cerrar-modal {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.8rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
         footer {
             background-color: var(--header-bg);
             border-top: 1px solid var(--gris-borde);
@@ -686,24 +771,29 @@
         </form>
     </div>
 
-    <div id="vista-espera" class="container vista">
-        <div class="resumen-pedido">
-            <h2>✨ ¡Estamos procesando tu pedido! ✨</h2>
-            <p>En un momento recibirás un mensaje de nuestro administrador con el costo exacto del envío. Por favor, ingrésalo aquí para continuar:</p>
-            <div class="form-group">
-                <label for="costo-envio-cliente">Costo de envío ($):</label>
-                <input type="number" id="costo-envio-cliente" step="0.01" min="0" placeholder="Ej: 2.50" required>
-            </div>
-            <button id="enviar-al-local" class="btn-agregar" type="button" style="width: 100%;">¡Listo, enviar pedido al local!</button>
-        </div>
-    </div>
-
     <div id="vista-gracias" class="container vista">
         <div class="resumen-pedido">
             <h2>💚 ¡Gracias por confiar en GOXPRESS! 💚</h2>
             <p>Tu pedido ya fue enviado al local. Un Rider pasará a recogerlo en 5-10 minutos.</p>
             <p>Pronto recibirás un mensaje con el estado de tu entrega. Si tienes dudas, contáctanos por el botón de soporte.</p>
+            <p style="margin-top:1rem; font-size:0.9rem;">📱 Puedes cerrar las pestañas de WhatsApp que se abrieron. La página principal ha recuperado el foco automáticamente.</p>
             <button id="volver-inicio-gracias" class="btn-agregar" type="button">Volver a la tienda</button>
+        </div>
+    </div>
+
+    <!-- Modal para ingresar costo de envío -->
+    <div id="modal-envio" class="modal-overlay">
+        <div class="modal-contenido">
+            <span class="cerrar-modal" id="cerrar-modal">&times;</span>
+            <h3>💰 Ingresa el costo de envío</h3>
+            <div class="form-group">
+                <label for="costo-envio-modal">Costo de envío ($):</label>
+                <input type="number" id="costo-envio-modal" step="0.01" min="0" placeholder="Ej: 2.50" required>
+            </div>
+            <div class="modal-acciones">
+                <button class="btn-secundario" id="cancelar-envio">Cancelar</button>
+                <button class="btn-primary" id="confirmar-envio">Enviar pedido al local</button>
+            </div>
         </div>
     </div>
 
@@ -989,12 +1079,34 @@
         const vaciarCheckout = document.getElementById('vaciar-carrito-checkout');
         const formCheckout = document.getElementById('form-checkout');
         const volverInicioCheckout = document.getElementById('volver-inicio-checkout');
-        const enviarAlLocal = document.getElementById('enviar-al-local');
         const volverInicioGracias = document.getElementById('volver-inicio-gracias');
         const selectCategoriaMovil = document.getElementById('select-categoria-movil');
         const buscadorInput = document.getElementById('buscador-local');
+        // Modal
+        const modalEnvio = document.getElementById('modal-envio');
+        const cerrarModal = document.getElementById('cerrar-modal');
+        const cancelarEnvio = document.getElementById('cancelar-envio');
+        const confirmarEnvio = document.getElementById('confirmar-envio');
+        const costoEnvioInput = document.getElementById('costo-envio-modal');
 
         const placeholderBase64 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23cccccc'/%3E%3Ctext x='50%25' y='50%25' font-size='16' text-anchor='middle' dy='.3em' fill='%23333'%3EImagen%3C/text%3E%3C/svg%3E";
+
+        // Función para determinar si un local está abierto según su horario
+        function estaAbierto(horario) {
+            if (horario.includes('24 horas')) return true;
+            const match = horario.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+            if (!match) return false; // no se pudo parsear, asumimos cerrado
+            const start = parseInt(match[1]) * 60 + parseInt(match[2]);
+            const end = parseInt(match[3]) * 60 + parseInt(match[4]);
+            const now = new Date();
+            const current = now.getHours() * 60 + now.getMinutes();
+            if (end < start) {
+                // cruza medianoche
+                return current >= start || current < end;
+            } else {
+                return current >= start && current < end;
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', () => {
             try {
@@ -1050,13 +1162,16 @@
             
             container.innerHTML = localesOrdenados.map(local => {
                 const tieneMenu = localesConMenu.has(local.id);
+                const abierto = estaAbierto(local.horario);
                 return `
                     <div class="card-local ${tieneMenu ? '' : 'sin-menu'}" 
                          onclick="${tieneMenu ? `seleccionarLocal(${local.id})` : 'return false;'}" 
                          ${!tieneMenu ? 'title="Este local aún no tiene menú disponible"' : ''}>
                         <img src="${local.imagen}" alt="${local.nombre}" class="imagen-local" onerror="this.onerror=null; this.src='${placeholderBase64}'">
                         <h3>${local.nombre}</h3>
-                        <p>${local.horario}</p>
+                        <div class="estado-local ${abierto ? 'abierto' : 'cerrado'}" title="${local.horario}">
+                            ${abierto ? 'Abierto' : 'Cerrado'}
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -1366,19 +1481,35 @@
             carrito = [];
             localStorage.removeItem('carrito');
             actualizarContadores();
-            mostrarVista('espera');
+
+            // Mostrar modal para ingresar costo de envío
+            mostrarModal();
         });
 
-        volverInicioCheckout.addEventListener('click', (e) => {
-            e.preventDefault();
+        function mostrarModal() {
+            modalEnvio.classList.add('visible');
+            costoEnvioInput.value = '';
+            costoEnvioInput.focus();
+        }
+
+        function cerrarModalYLimpiar() {
+            modalEnvio.classList.remove('visible');
+            sessionStorage.removeItem('pedidoPendiente');
+            pedidoPendiente = null;
             mostrarVista('inicio');
-        });
+        }
 
-        enviarAlLocal.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (!pedidoPendiente) { alert('No hay pedido pendiente'); return; }
-            const costoEnvio = parseFloat(document.getElementById('costo-envio-cliente').value);
-            if (isNaN(costoEnvio) || costoEnvio < 0) { alert('Ingresa un costo de envío válido'); return; }
+        confirmarEnvio.addEventListener('click', () => {
+            const costoEnvio = parseFloat(costoEnvioInput.value);
+            if (isNaN(costoEnvio) || costoEnvio < 0) {
+                alert('Ingresa un costo de envío válido');
+                return;
+            }
+            if (!pedidoPendiente) {
+                alert('No hay pedido pendiente');
+                cerrarModalYLimpiar();
+                return;
+            }
 
             const localIds = Object.keys(pedidoPendiente.itemsPorLocal);
             if (localIds.length === 0) return;
@@ -1405,7 +1536,27 @@
 
             sessionStorage.removeItem('pedidoPendiente');
             pedidoPendiente = null;
+            modalEnvio.classList.remove('visible');
             mostrarVista('gracias');
+
+            // Recuperar el foco de la ventana principal después de abrir WhatsApp
+            setTimeout(() => window.focus(), 500);
+        });
+
+        cerrarModal.addEventListener('click', cerrarModalYLimpiar);
+        cancelarEnvio.addEventListener('click', cerrarModalYLimpiar);
+
+        volverInicioCheckout.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (localSeleccionadoActual) {
+                // Volver al menú del local
+                seleccionarLocal(localSeleccionadoActual);
+                // Actualizar vistaActual para que el botón siguiente se comporte bien
+                vistaActual = 'inicio'; // pero estamos en el menú, que es parte de inicio
+                actualizarBotonSiguiente();
+            } else {
+                mostrarVista('inicio');
+            }
         });
 
         volverInicioGracias.addEventListener('click', (e) => {
@@ -1444,15 +1595,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
