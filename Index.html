@@ -12,18 +12,13 @@
             --fondo-tarjetas: #f0f4fa;
             --fondo-contenedores: #fafafa;
             --fondo-detalle: #fff3e0;
-            --fondo-fecha: #fff3e0;
-            --fondo-datos-empresa: #f0f7f0;
             --gris-borde: #d9e2ef;
             --gris-fondo-secundario: #eaf0f8;
             --gris-hover-secundario: #dbe4f0;
-            --gris-linea-punteada: #ccc;
-            --texto-comprobante: #333333;
             --whatsapp: #25D366;
             --whatsapp-hover: #20b859;
-            --whatsapp-disabled: #94d3a2;
             --bg-body: var(--fondo-contenedores);
-            --text-color: var(--texto-comprobante);
+            --text-color: #333333;
             --card-bg: var(--blanco);
             --header-bg: var(--blanco);
             --eliminar: #ff4444;
@@ -38,9 +33,7 @@
             --fondo-tarjetas: #2a3730;
             --gris-borde: #3a4a40;
             --gris-fondo-secundario: #33403a;
-            --texto-comprobante: #f0f0f0;
             --fondo-detalle: #2a3730;
-            --fondo-datos-empresa: #1e2a24;
             --eliminar: #ff6666;
             --eliminar-hover: #ff3333;
         }
@@ -525,7 +518,7 @@
             padding: 1rem;
             border-radius: 8px;
             margin: 1rem 0;
-            border: 1px dashed var(--gris-linea-punteada);
+            border: 1px dashed var(--gris-borde);
         }
 
         .item-resumen {
@@ -548,7 +541,7 @@
         }
 
         .aviso-transferencia {
-            background-color: var(--fondo-datos-empresa);
+            background-color: var(--fondo-detalle);
             border: 1px solid var(--whatsapp);
             padding: 0.8rem;
             border-radius: 8px;
@@ -557,7 +550,18 @@
             text-align: center;
         }
 
-        /* Modal */
+        /* Distancia y estado */
+        .distancia-info {
+            background-color: var(--fondo-detalle);
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-size: 1rem;
+            border: 1px solid var(--whatsapp);
+        }
+
+        /* Modal de confirmación */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -578,7 +582,9 @@
             padding: 2rem;
             border-radius: 12px;
             width: 90%;
-            max-width: 400px;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
             box-shadow: 0 5px 20px rgba(0,0,0,0.3);
             position: relative;
             border: 1px solid var(--gris-borde);
@@ -594,6 +600,7 @@
             display: flex;
             gap: 0.5rem;
             justify-content: flex-end;
+            margin-top: 1rem;
         }
         .modal-acciones button {
             padding: 0.5rem 1rem;
@@ -624,6 +631,12 @@
             cursor: pointer;
             color: var(--text-color);
         }
+        .modal-resumen {
+            background-color: var(--fondo-detalle);
+            padding: 0.8rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
 
         footer {
             background-color: var(--header-bg);
@@ -632,10 +645,6 @@
             text-align: center;
             font-size: 0.85rem;
             color: var(--text-color);
-        }
-
-        #map {
-            display: none;
         }
 
         @media (max-width: 600px) {
@@ -718,6 +727,8 @@
         <div id="locales-container" class="locales-grid"></div>
         <div id="local-seleccionado" style="display: none;">
             <button id="volver-locales" type="button">← Ver todos los locales</button>
+            <!-- Aquí mostramos la información de distancia -->
+            <div id="distancia-info" class="distancia-info">📍 Obteniendo tu ubicación para calcular el envío...</div>
             <div id="productos-local"></div>
         </div>
     </div>
@@ -781,18 +792,21 @@
         </div>
     </div>
 
-    <!-- Modal para ingresar costo de envío -->
-    <div id="modal-envio" class="modal-overlay">
+    <!-- Modal para confirmar envío al local -->
+    <div id="modal-confirmar-envio" class="modal-overlay">
         <div class="modal-contenido">
             <span class="cerrar-modal" id="cerrar-modal">&times;</span>
-            <h3>💰 Ingresa el costo de envío</h3>
+            <h3>📦 Confirmar envío al local</h3>
+            <div id="modal-resumen" class="modal-resumen">
+                <!-- Se llena dinámicamente -->
+            </div>
             <div class="form-group">
                 <label for="costo-envio-modal">Costo de envío ($):</label>
                 <input type="number" id="costo-envio-modal" step="0.01" min="0" placeholder="Ej: 2.50" required>
             </div>
             <div class="modal-acciones">
                 <button class="btn-secundario" id="cancelar-envio">Cancelar</button>
-                <button class="btn-primary" id="confirmar-envio">Enviar pedido al local</button>
+                <button class="btn-primary" id="confirmar-envio-local">Enviar pedido al local</button>
             </div>
         </div>
     </div>
@@ -812,103 +826,105 @@
         // ============================================================
         // ========== CONFIGURACIÓN EDITABLE =========================
         // ============================================================
-        const WHATSAPP_ADMIN = '593994710370';
-        const TELEFONO_CONTACTO1 = '593994710370';
-        const TELEFONO_CONTACTO2 = '593985562172';
+        const WHATSAPP_ADMIN = '593994710370'; // Número del administrador
 
-        // ===== LOCALES =====
+        // Factor de corrección para aproximar distancia lineal a distancia real por calle
+        // Ajusta este valor según tus pruebas (ej. 1.75 si 1.2 km lineales = 2.1 km reales)
+        const FACTOR_CORRECCION = 1.75;
+
+        // ===== LOCALES CON COORDENADAS (se deben agregar lat/lng a cada uno) =====
         const datosGOXPRESS = {
             locales: [
                 // ==================== COMIDA ====================
-                { id: 1, nombre: "ALAS 8 Ambato", categoria: "comida", horario: "Lun-Dom 16:30-22:30", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-6/326362905_706598784478688_2505175895699667043_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGaQnIbgE53-Q3rtPvWwMFvngwGAK7PWKueDAYArs9Yq46xKRhn7s_kyEJxTQI0hiv-BiDEFNZWK5JL5Nfr5m83&_nc_ohc=NqBf4OxIWCwQ7kNvwGlFmiT&_nc_oc=AdntSNjvq1-Wd16PdZCPZhkSEgMF1u2ZSVzCJE9T7OI_6Dce6u-JCVkBrSxPeJkZ3r0&_nc_zt=23&_nc_ht=scontent.fuio11-2.fna&_nc_gid=Hr2e5gETKw5VcxK94VxnBA&_nc_ss=8&oh=00_AfylxHquWFeuAauL8Y7Ydz0uq709seEVezB4lW67vlfhqA&oe=69B57CF2", whatsapp: "593987788964" },
-                { id: 2, nombre: "Apapear&Sweat", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Apapear", whatsapp: "541123456789" },
-                { id: 3, nombre: "BerdiGrill", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgz4TGyy0DMeHvvj_xib0NjoCBOAzFBntacopcQSWyp7Vrq8EbYFDopUKNhFrPsDgir8JdeZqFHaXy3UFda9_rA-Bs-L9TCTyZ5ng6uuJXe_6T-TPDiqm5T4vx0HjUf-9eJJAAEa4YIwQgbtrFxoXUJE9EI4QQgAVCLl36wM_CxIKXlH3FHj7o_qSp16LU/s640/WhatsApp%20Image%202026-03-11%20at%2022.56.20.jpeg", whatsapp: "593981779177" },
-                { id: 4, nombre: "Bolonche", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://scontent.fuio11-1.fna.fbcdn.net/v/t39.30808-6/646376975_122241332846153586_1528527911710042237_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeG0D7WvsVQQ2fx3Ov8_xn6YWHrOq5ipdTxYes6rmKl1PHD3eaagBPWkCYN1s5SXNJcvXHUDwh8PCiGQ7A6UdkDY&_nc_ohc=LraIjLVZOq4Q7kNvwGyZRLF&_nc_oc=AdkOrq3d2JOZHtXxAAdCMNocQlsK-xTekFv6Hy0SmviA2dnSa6lr5wAvORkDXjbLX_4&_nc_zt=23&_nc_ht=scontent.fuio11-1.fna&_nc_gid=HbAZ3cFrBtuYdAbEp6op7w&_nc_ss=8&oh=00_AfwBwy_8Je020rrk6nKeiYlvMwtWjDpjMWWgyfrbGs0vTg&oe=69B59242", whatsapp: "593991495550" },
-                { id: 5, nombre: "Brissa Marisquería Los Shyris", categoria: "comida", horario: "Lun-Dom 8:00-16:30", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-6/547447840_1388751683254217_2149139467650989194_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGCiUhwQA3adkRvzdn2AVJ-XDGHGn3HqGxcMYcafceobOcaqcmoXSQAGOQREp5GBtElNLx5t1BUk-lPb0-bLyh8&_nc_ohc=4J5I0vlsn4YQ7kNvwExZGsf&_nc_oc=Adnn3FB1yXlBw3uqdCL5FZm46SKys1XHM2oQ4WBbS0NqSRl9mNBPZon2cdk_Hx81LNo&_nc_zt=23&_nc_ht=scontent.fuio11-2.fna&_nc_gid=2m2p-WFBNVkdJ88J2XIZfg&_nc_ss=8&oh=00_Afx45H_KqCl2UYJkUsXSYC2-9s_DlZTnV6aw3wT85gX85g&oe=69B58BCA", whatsapp: "593997081252" }, 
-                { id: 6, nombre: "Brissa Marisquería Izamba", categoria: "comida", horario: "Lun-Dom 8:00-16:30", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-6/547447840_1388751683254217_2149139467650989194_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGCiUhwQA3adkRvzdn2AVJ-XDGHGn3HqGxcMYcafceobOcaqcmoXSQAGOQREp5GBtElNLx5t1BUk-lPb0-bLyh8&_nc_ohc=4J5I0vlsn4YQ7kNvwExZGsf&_nc_oc=Adnn3FB1yXlBw3uqdCL5FZm46SKys1XHM2oQ4WBbS0NqSRl9mNBPZon2cdk_Hx81LNo&_nc_zt=23&_nc_ht=scontent.fuio11-2.fna&_nc_gid=2m2p-WFBNVkdJ88J2XIZfg&_nc_ss=8&oh=00_Afx45H_KqCl2UYJkUsXSYC2-9s_DlZTnV6aw3wT85gX85g&oe=69B58BCA", whatsapp: "593963839302" }, 
-                { id: 7, nombre: "Brissa Marisqueria Huachi", categoria: "comida", horario: "Lun-Dom 8:00-16:30", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-6/547447840_1388751683254217_2149139467650989194_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGCiUhwQA3adkRvzdn2AVJ-XDGHGn3HqGxcMYcafceobOcaqcmoXSQAGOQREp5GBtElNLx5t1BUk-lPb0-bLyh8&_nc_ohc=4J5I0vlsn4YQ7kNvwExZGsf&_nc_oc=Adnn3FB1yXlBw3uqdCL5FZm46SKys1XHM2oQ4WBbS0NqSRl9mNBPZon2cdk_Hx81LNo&_nc_zt=23&_nc_ht=scontent.fuio11-2.fna&_nc_gid=2m2p-WFBNVkdJ88J2XIZfg&_nc_ss=8&oh=00_Afx45H_KqCl2UYJkUsXSYC2-9s_DlZTnV6aw3wT85gX85g&oe=69B58BCA", whatsapp: "593989070245" }, 
-                { id: 8, nombre: "Brissa y Marisqueria La Primavera", categoria: "comida", horario: "Lun-Dom 8:00-16:30", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-6/547447840_1388751683254217_2149139467650989194_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGCiUhwQA3adkRvzdn2AVJ-XDGHGn3HqGxcMYcafceobOcaqcmoXSQAGOQREp5GBtElNLx5t1BUk-lPb0-bLyh8&_nc_ohc=4J5I0vlsn4YQ7kNvwExZGsf&_nc_oc=Adnn3FB1yXlBw3uqdCL5FZm46SKys1XHM2oQ4WBbS0NqSRl9mNBPZon2cdk_Hx81LNo&_nc_zt=23&_nc_ht=scontent.fuio11-2.fna&_nc_gid=2m2p-WFBNVkdJ88J2XIZfg&_nc_ss=8&oh=00_Afx45H_KqCl2UYJkUsXSYC2-9s_DlZTnV6aw3wT85gX85g&oe=69B58BCA", whatsapp: "593985372085" }, 
-                { id: 9, nombre: "Brisa & Marea", categoria: "comida", horario: "Lun-Dom 8:00-16:00", imagen: "https://ideogram.ai/assets/image/balanced/response/m6DQ3DYGRSW4I_POK7Selg@2k", whatsapp: "593000000001" },
-                { id: 10, nombre: "Broos Burguer Las Chancro", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-1/473259287_624976316711774_3226442731634568411_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=107&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFmlzrMP9JOkRM4MKayL3bDygctMw34phfKBy0zDfimF6xiOe6OMqNyxXoRGioRWiv3mK04aKekg_08Pk1WE77n&_nc_ohc=6JNLmOpQkwwQ7kNvwHH2Ena&_nc_oc=Adkz2ufN0l7QFYNeHAebgiyMUkQqSkyXCMw2Jw4Vf_bGP0dZPCrL54BE-HCOMmMIsj8&_nc_zt=24&_nc_ht=scontent.fuio11-2.fna&_nc_gid=jGeSd1CdySUWgbxVEdP-hg&_nc_ss=8&oh=00_Afzjf77EW5jzAoy51WOCE4k_0l75zEORo1-LHIM5WKpCJg&oe=69B576BC", whatsapp: "593995393794" },
-                { id: 11, nombre: "Broster Casero", categoria: "comida", horario: "Lun-Dom 13:00-22:00", imagen: "https://scontent.fuio11-1.fna.fbcdn.net/v/t39.30808-6/463415695_1072927928168350_429729094889415116_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeF4OvoftKO_ha8Ghf1iGmwoz4B5C1rrdFnPgHkLWut0WV97RFy8X8LvN1JTLDzCvelwgHQgiIXGFjGjctGPhYfy&_nc_ohc=OOLAH5dBdZwQ7kNvwF7DiIH&_nc_oc=AdnyTCpwH65N-38UUPRvNh7AxIALaheuvT0XJ_682g_qh7CLTDLFRx9GdV-ljPxnWiY&_nc_zt=23&_nc_ht=scontent.fuio11-1.fna&_nc_gid=wOEZefdF7npM9nNMiZWCWw&_nc_ss=8&oh=00_AfyY9YBole6IKw_1z5tqiwL1Jhqz7Ne67A6baCkLGatngQ&oe=69B57C9F", whatsapp: "593960058909" },
-                { id: 12, nombre: "Camaron Reventado", categoria: "comida", horario: "Lun-Dom 19:00-21:00", imagen: "https://scontent.fuio11-1.fna.fbcdn.net/v/t39.30808-6/447429079_986902356770522_1496177889529826339_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFtftRicDlGBcdB-Nu-kuBFnJNCDWRcDCqck0INZFwMKszBR2d78e729ULD4qNJ9wT1qSO7X9zdyLwfStIjT-9o&_nc_ohc=ky1Pee-lVHAQ7kNvwEqE_ei&_nc_oc=AdkbmRYt6XAQ42jBLJtys5ggL-aLuxVYubterPyMTuhpeGj3UHD2Pw_vzS6bZslupUk&_nc_zt=23&_nc_ht=scontent.fuio11-1.fna&_nc_gid=Hyu1Y9uuB1FPNPAhKOfUPg&_nc_ss=8&oh=00_Afy8pX8_9kMOchvTFa_3Njqob3CwLn2UpG0oRZNwxkgr7A&oe=69B5A0E6", whatsapp: "593987333113" },
-                { id: 13, nombre: "Chifa Global", categoria: "comida", horario: "Lun-Dom 10:00-22:00", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-6/324235238_649603013608491_8203603425919112615_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGmYL_IrRQESq0CUoD-HbJNZCeb-BwIg6tkJ5v4HAiDqyuFsteblTZXM96E9g4Sxo5KLctrF4-GVigyGaIkxN-5&_nc_ohc=vPIbz2uM-nsQ7kNvwFCcGiy&_nc_oc=AdkB9yQ6uhFi8Puy6oQcx4cldm8UH2dH50MKCKUvpf60hlvz9obRoS7Gn0kua5u0s40&_nc_zt=23&_nc_ht=scontent.fuio11-2.fna&_nc_gid=ErYS8wRZK5kl8COinUwh6Q&_nc_ss=8&oh=00_AfxGRMfyV6p5EXALJP6t5Q-qIiXVC1ugFCN_dO9vIq1spg&oe=69B582DE", whatsapp: "593968412781" },
-                { id: 14, nombre: "Chifa China 2", categoria: "comida", horario: "Lun-Dom 8:00-22:00", imagen: "https://scontent.fuio11-1.fna.fbcdn.net/v/t39.30808-6/306008730_503978325067386_5882592404201301342_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFL9IM0S7ze9lBQr4MoiUIhEZtXSHKnwewRm1dIcqfB7MPmeiwC6WQ8iFMjjz4T8LSrhO1ww-dszOq5G0ehcNhK&_nc_ohc=xt1W9gt9ceMQ7kNvwGKTVCo&_nc_oc=AdluFPWHgFlCmotpmLfBhP2a6ZG-Ersam5lRSLU9EJMBw4x2nzqOxo6QN9fy676QQmo&_nc_zt=23&_nc_ht=scontent.fuio11-1.fna&_nc_gid=9o2ax7yT4zwFld88mXjsDA&_nc_ss=8&oh=00_Afywevg_CNKy2cpaxN3cFLP2NA3iX1gv6-C8iIgcotCEAQ&oe=69B58981", whatsapp: "593993768037" },
-                { id: 15, nombre: "Chifa Yin Yang Yahuira", categoria: "comida", horario: "Lun-Dom 11:30-21:30", imagen: "https://scontent.fuio11-1.fna.fbcdn.net/v/t39.30808-6/481780311_122100355040783102_7232832891488049740_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFWb8IeLv6V0ak1i13b5R5jzMhTqA8KPUTMyFOoDwo9RG1tNQe3moctOZt2j8XYLcqC18PMof1vBgUxQf-sMTgd&_nc_ohc=60rampLTsmYQ7kNvwFtkLYj&_nc_oc=AdkMf7WlUd-ajPHc_8trI1WDDBpCtTJYA3IkfDOIZj8PFueQ0FsiUEVXN3QQ39g21dI&_nc_zt=23&_nc_ht=scontent.fuio11-1.fna&_nc_gid=MN8aDc5v9po4fuy_QFBr9A&_nc_ss=8&oh=00_Afx5ktBm53H0GxElPXqG4gWew1MUF5-oyHtb3j-PRqKIEA&oe=69B58995", whatsapp: "593969443679" },
-                { id: 16, nombre: "Chifa Yin Yang Izamba", categoria: "comida", horario: "Lun-Dom 11:30-21:30", imagen: "https://scontent.fuio11-1.fna.fbcdn.net/v/t39.30808-6/481780311_122100355040783102_7232832891488049740_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFWb8IeLv6V0ak1i13b5R5jzMhTqA8KPUTMyFOoDwo9RG1tNQe3moctOZt2j8XYLcqC18PMof1vBgUxQf-sMTgd&_nc_ohc=60rampLTsmYQ7kNvwFtkLYj&_nc_oc=AdkMf7WlUd-ajPHc_8trI1WDDBpCtTJYA3IkfDOIZj8PFueQ0FsiUEVXN3QQ39g21dI&_nc_zt=23&_nc_ht=scontent.fuio11-1.fna&_nc_gid=MN8aDc5v9po4fuy_QFBr9A&_nc_ss=8&oh=00_Afx5ktBm53H0GxElPXqG4gWew1MUF5-oyHtb3j-PRqKIEA&oe=69B58995", whatsapp: "593958937282" },
-                { id: 17, nombre: "Combo Loco", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/502948997_122154477530546031_877418617723055673_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeG7WMpkQt2EKdeOOLwOngspP-w-OFr0zu8_7D44WvTO71OBCrNXieIpktA1DLOUzZbGT5yUjPMqKgy7Ju-xfWvi&_nc_ohc=1KDaQG0J_JwQ7kNvwE1ZFjN&_nc_oc=AdmicJE9DCTEg1DDzOrCOWwB5imaHQ36iD6-GnDZmN6ejWQZTqX7HXxvBQ6mSqBN2PM&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=7JbCnXGn49hbvLalMFUegQ&_nc_ss=8&oh=00_AfzVxXV7rWifoa7COJAenRKN8_fxASJrCrJKTrGS4GwS1Q&oe=69B59DC8", whatsapp: "593979065635" },
-                { id: 18, nombre: "Cosmopolita Coffee", categoria: "comida", horario: "Lun-Dom 08:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/277518129_508116557691966_7695132929388714249_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEidwhsblqnG06QgZh0C8S5seQN8PIVDzWx5A3w8hUPNZ6JEA9d74e8LiP55sWPZlWb4FrxFqYReOV5YWallaO8&_nc_ohc=20c3-gRg0vAQ7kNvwHCdKQp&_nc_oc=AdnGDEDO84Mk3PprgiFmWHX1rCWADcyVCNrAdZL-A6pTCKh0VwhC3RHJjZAFgsCVlQA&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=1VckSaFBXcyaBcQwDgWryw&_nc_ss=8&oh=00_AfwWZsu9vShWLTm4gL3Tl4FKiXMOeqwT3kX-DnqaZrMLLg&oe=69B57A89", whatsapp: "593995212341" },
-                { id: 19, nombre: "Donald's Pizzeria", categoria: "comida", horario: "Lun-Dom 11:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/277220526_1455821658205295_2390483768106643751_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEWKXn3dLvMnETBCsPQpa8s88WaNYddFZzzxZo1h10VnLo9dK14g9QIjYiFagRl5vD1TzWaGzdKjfQUYB19IDuC&_nc_ohc=bVKt7Q87mtkQ7kNvwEf7CGI&_nc_oc=Adnwj_frwgYikouGSltkXe9PZLtxFV19PKgI50coD13cvPbddW9FDilt0vmvjoffmsM&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=_qf57AjLK4l6rE1f8KwWdA&_nc_ss=8&oh=00_AfyiYIlK3JjHbrC3YfGw9D4QK1wj5JeLhWKuc4Tt1g70Iw&oe=69B5888B", whatsapp: "59987132620" },
-                { id: 20, nombre: "Mini Donas Gema", categoria: "comida", horario: "Lun-Dom 8:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/492399409_122108972846831471_7661867832911712383_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHBnq2SBpUS6ULeqc9joKhDew1ULSLPCzh7DVQtIs8LOE9gogd1hyZvos07EMw_qEmAs_XGK0FrNPPcdr4bBEr0&_nc_ohc=RMPa7HFmSY0Q7kNvwEIYikw&_nc_oc=AdkGjltnEbKEj-GIYmv12BbldMjtez6ot5kgKV_kGI5LQehRl8dV5vyJqH0Fg2CzX8A&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=2kyoGpLq99kw8m-vppa8lw&_nc_ss=8&oh=00_Afx_lpqz2VTuwPEj9OzaZBCpcvYkCi0O6I_klnUYqDbo1g&oe=69B594E4", whatsapp: "593985437890" },
-                { id: 21, nombre: "El Lince Restaurante Ficoa", categoria: "comida", horario: "Lun-Dom 05:30-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/312797864_527399716062653_760125280153907724_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFwexBfEMw4SoEb1Npgd6s_TYegaEIWc0dNh6BoQhZzRxDeM0fERVh8IwPGOFDb3X4HFMHVoWNNKExes6Yuwj4K&_nc_ohc=zVxle6KeurAQ7kNvwFVBg1y&_nc_oc=AdkHQypKU1VOpKyjTw31_97RXG3Vqan5v_eBkVFi_cB5PML8sJKHYA9sUwlK9jebXsE&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=1IIilUXFqiZtsRjsR7L4KQ&_nc_ss=8&oh=00_Afwc5aCptQ6NP8fE6uUv6cBuc6DsxUVeZMJqAB8rAd9Jhg&oe=69B5A7FA", whatsapp: "593999838222" },
-                { id: 22, nombre: "El Paisa", categoria: "comida", horario: "Lun-Dom 09:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/481192799_1165630425264408_8618983295905014575_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=106&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeEM-RopsjUvJ74QNrxpQhbOuihMLArIX866KEwsCshfzme2-retoNwlWw2wo53-TbwFazQ8G3jUlPQHR-divZMB&_nc_ohc=D4wSO1xjgI8Q7kNvwG4JPWw&_nc_oc=AdkHxtEs19_xfT1zknQ9QmV7f0BBvZmyrBosG7AOPKahqR4bnXaFdp5cCmaVYmhH-j0&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=jxx-cBnAMaAjcy71gZv8xg&_nc_ss=8&oh=00_AfwG9vTg7AnBagMN7bJESR6-zaj1iToKHAX-XbMt3dYlbA&oe=69B5A347", whatsapp: "593969296962" },
-                { id: 23, nombre: "El Parrillero B.B.Q - Grill", categoria: "comida", horario: "Lun-Dom 12:30-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/275788264_1006029057013104_7858098551674536120_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGPCji0He-SFHNR4SDJcVuMkLGU4VdG26WQsZThV0bbpQK2fCWEtYXHu1y2x5e-ZifDGD4D4NYF4a3Aa00OQvrC&_nc_ohc=2LRmy0IfoJoQ7kNvwFC1Gp6&_nc_oc=Adm4MxU_qg3UggIARwn4yGAakDpsdMHoA9ArMNJVfQQF9AYEjX1qN6qZ2Wt1rF7qxuo&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=NDhZOV8bsSgq7NTKxFaRUg&_nc_ss=8&oh=00_AfzfmxiGGoZPpECS7KyrDjH5zVoSpG9iixhssHm2o9CeDg&oe=69B63395", whatsapp: "593998831980" },
-                { id: 24, nombre: "El Rincón de las Alitas", categoria: "comida", horario: "Lun-Dom 12:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/299028849_481630583969040_1465233177648730246_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeELVzGqJGt7CGyYPDRHxxslU4wJ6Y-aTZZTjAnpj5pNlquuUYrVNFyjzlPRh_I_MGjeBxqNkUMQ_yLGGl0pysK0&_nc_ohc=_SMFwZSdMOkQ7kNvwEvYg68&_nc_oc=AdnZA32Gb9qNHhmWah0nBWu_EbNFOuT7Yci1KCG6ipuB7j5hyyV8V5a0gMnaGdyoN4Q&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=ULngEY0zTJyXDzAmc7Z8qA&_nc_ss=8&oh=00_Afym27-rZi69DcUTcuNIv2F2LAqG-Ga4FBbOJ9VsJAO_2g&oe=69B65632", whatsapp: "593939570497" },
-                { id: 25, nombre: "El Rincón Venezolano", categoria: "comida", horario: "Lun-Dom 08:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/419747416_1147184239961204_3971524108542861410_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeH4UuH5-XZTi7YoyfI8kxfA29r1niRxxwrb2vWeJHHHCvbKP4B049mwwxlb2x9wHw0MuYU2BLuYQSkDxaLOujIp&_nc_ohc=w9QqiWPfI4gQ7kNvwGhBL4N&_nc_oc=Admr6hGQlQ9dQ32jcYbHuKpPeGUqrJ14oWVBmivcDF6HqNxgy5Ea4UICetA4mXyohUs&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=4Wl6FnWOxf8mc1712ym8GQ&_nc_ss=8&oh=00_AfxtYnKd6lcFFO7XaIGh23mB0f4mvSLBrBXfIYos5jNv2w&oe=69B63176", whatsapp: "593999743143" },
-                { id: 26, nombre: "El Sambito", categoria: "comida", horario: "Lun-Dom 08:00-17:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/489461118_1341712894108661_5190953202013349686_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=13d280&_nc_eui2=AeHHpkdg_5iTOwWlI9-gYPZIhPQuRK-nguyE9C5Er6eC7BSOWrUHgdce9-esaTkapl7RgjFm7zLwviIJtYYRvHZv&_nc_ohc=VfjwlkxcZgUQ7kNvwH-zxLB&_nc_oc=AdkN9tr2pEgltErfwXi_9Ew0ppOt3ti3qGmKbl4dKb0cJnnO__SzN_bG-mDb-O21I6Q&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=hQ0avVAADq5MwwykGRgHgA&_nc_ss=8&oh=00_AfwyMNEgVJ2TNZE95fLqK8cbBOCwSZmg2ykX5wdiPhtqOQ&oe=69B635D4", whatsapp: "593986176511" },
-                { id: 27, nombre: "El Ta-kamex", categoria: "comida", horario: "Lun-Dom 12:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/241202347_1389951938107971_551250029100800338_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFBQwQYNArZDpD3QDEbmJq5KnI6HDMb3e8qcjocMxvd78Gac-BsAbh93BzlgANtKTKqhp-6rQIdHwV--DQaLwRj&_nc_ohc=WbAEQHof0mYQ7kNvwGvm80Q&_nc_oc=AdnXaXWMh-LRm3Pc3ZqD_jpa8cTnWfZ-96HWNgUPpis5zihEEA-VHyR0_w1aYgxb4ss&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=_GajwyvNyxGpaXc829FmpQ&_nc_ss=8&oh=00_AfwhqyUwb2dxi_ZFoMYA1B25XROgMkcEJmq2SHYHy5Dk6Q&oe=69B62F4B", whatsapp: "593979019576" },
-                { id: 28, nombre: "El Toque Guayaco 2", categoria: "comida", horario: "Lun-Dom 08:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/487487774_122097865850828413_5927905605107483944_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGduFkfxYcxDN34WsUea8Ws8S-LfnzrXibxL4t-fOteJvHsG0pXbvpPIpYzgeY0qk_DACgIt_UXcEioH26mlL_a&_nc_ohc=WLnJqUsIseMQ7kNvwHaw60p&_nc_oc=AdkpR7eC9Q9FYkEfkiRRv6ff9wV0d8fQrUiueEwypJlBTD9KRHltykFwKzKRfyfF1Os&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=y-1kacnW3cDwJgJjn6E1oQ&_nc_ss=8&oh=00_AfwhKli3iPO_H3f2tOTLLSgRGkLrts2sG4-0LyKZ_y0N-Q&oe=69B656D1", whatsapp: "593984135801" },
-                { id: 29, nombre: "Fast Broaster Huachi", categoria: "comida", horario: "Lun-Dom 09:00-10:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/346289427_216745434435328_9163308069513517892_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFUs1e766a0BYRDKIVuulMY_H4kWmuhVAX8fiRaa6FUBT4FPcILqpFzyTRXG2KwbX9r9nxUKrgpIw3fOYB5iEyn&_nc_ohc=09XqPBGmPjoQ7kNvwHYziwG&_nc_oc=Admsjv2BK3C2b99eGQvdnelNX5bc6g_QaSMtR2a-8TkgF3UApSDRenJuVPksAiXF82E&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=-41fJk2IrMKmFf_psg3rJg&_nc_ss=8&oh=00_AfyXARnJbKG3tsp9r1m3m3EG5luooKkIQmgWXZpMKJMmSw&oe=69B69431", whatsapp: "593990531538" },
-                { id: 30, nombre: "Fast Chicken", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/334012478_776884907192970_7432870570782055366_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=53a332&_nc_eui2=AeF7r7MVJuFJZWtWxBDENw6oOMKzvqf1nSQ4wrO-p_WdJNhTbPjcSg8Cwlnkdg8DoQVXl_08VqNhwy4xRTI3uqVY&_nc_ohc=yVrXvPZp7AcQ7kNvwGc6jg5&_nc_oc=Adlpom1xEKmwsXaLvaCFvZbKKrfu7_6mkcfOS89cyrlD1SnhkDroh6J16AcsBpz2q-A&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=1d7BYzoDY2YDejBi7_B1oA&_nc_ss=8&oh=00_AfzjS8DliPPFfvI5hHww9S0494Ksv8p_64e1WYjHzaFeuQ&oe=69B67B28", whatsapp: "593" },
-                { id: 31, nombre: "Foggatta", categoria: "comida", horario: "Lun-Dom 17:00-22:00", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-6/615413061_122154895790683985_1101301296625214554_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGILsRP3RaBrYeVSV7LsF3tLcrIpfuQJEstysil-5AkS-jXbV4yOcZyi814u5URm0r43Bv96-UHDwDvwesiNv4I&_nc_ohc=vkpPvLjcpIYQ7kNvwFPJm6b&_nc_oc=AdnGoA0vEwwa9sUzoQZPvNKaK7228xeBMz2dRUY02OJJdTy0L9MAiYhrgct4d38RhG0&_nc_zt=23&_nc_ht=scontent.fuio11-2.fna&_nc_gid=di7YFnP2EOvQ-jhIW8if2w&_nc_ss=8&oh=00_AfwQaRmV3jY_ASZHlqQl0O2IHJIoTXB-DB6bmc1hsnFtlQ&oe=69B57B86", whatsapp: "593967890945" },
-                { id: 32, nombre: "Pizza Foodut Ambato", categoria: "comida", horario: "Lun-Dom 18:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/318312427_115437691401605_1711612410886690709_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHh8f9g1ePEvvViKgZGW2cSs1hgh-KqHMOzWGCH4qocw4zDdhs42SJsXNB_t0Z-JHvUTW0wrys5s0X2TwYLJ0Xv&_nc_ohc=_KbAMpL-N_MQ7kNvwEKagBU&_nc_oc=AdnG9-PGljp1w4BU7lf79umoxVduD8RewpPNlA6rf146r5zFmDYWUlazonzdlrOsFIg&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=2JIPT0OE7pWAjECkeUBkfg&_nc_ss=8&oh=00_Afw1s2MH9gTdJHj-6xTfSujJvQduCEIoHzS_eS0Y_zJ9lw&oe=69B6837A", whatsapp: "593960573649" },
-                { id: 33, nombre: "Inari Sushi Rock", categoria: "comida", horario: "Lun-Dom 12:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/230964606_355669502846145_4449122290635581938_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEccyq5rw0qRVghg4COhyGcUF-d5051NE5QX53nTnU0TinLKP8Ne7Qi4VaALcdgZ_Z23SaCu1RalET8k0tqRvgy&_nc_ohc=qJnbRl75LBsQ7kNvwH6gEjh&_nc_oc=Adkso-6IFjkIk-fpFqVr7oNXo6SSqkCmO854yPl2NUkJCuw1vKhLT7pap4HQke920SE&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=-dnIGxE5YjP-5A3C5O2aLQ&_nc_ss=8&oh=00_AfyjyIUQmxIV5KJPIOBzMH1Bl19nCWraTPK7TQozNOLb6w&oe=69B69F1D", whatsapp: "593983534050" },
-                { id: 34, nombre: "Kaffa", categoria: "comida", horario: "Lun-Dom 08:00-18:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/428500798_122095625918232893_6143742815996195632_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=100&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeHbS5PFsLoK--jp6CEaRy0A8s39UzOd9aDyzf1TM531oJDgd1Ah8v4geWzmvz4eg1IXuK7nmRMYDSULi_MvB387&_nc_ohc=F5lFouOawOcQ7kNvwHLxXk4&_nc_oc=AdlH8IE3euZChVWTaBMIhdkox_HXXFBJiK-MC7cJy6KPMteF-HK5xNhbZK6fktbO0uo&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=38B9NOLIx3iMReRO35EnCg&_nc_ss=8&oh=00_Afx2rQBgFqM8EVFsxohimdunp3MW0PU_P-vVKuwH4-uVag&oe=69B6A590", whatsapp: "593" },
-                { id: 35, nombre: "KFC", categoria: "comida", horario: "Lun-Dom 08:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/410459039_751489760348331_8162467193416604834_n.png?_nc_cat=1&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEOb3yVsuAe8JshBMzs-d8kf9N2AzP2x-N_03YDM_bH48UeRo8khUy6yiKlLDp5K8oAygisseAXCKidWJSFCu5L&_nc_ohc=U-8v6TbU4EEQ7kNvwF6TE6w&_nc_oc=Adme6guIhnKTbUNF5GKMkyUK8M64UTeJHZApmKHaVMVauIO1HrXpnnTQpQI-JkF1pa4&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=-qpszuUw-Ek69JglaBmjwQ&_nc_ss=8&oh=00_AfyQTuhAEFW7SiJrrNs0o1TGS5ATC0UFWR7UEjNcr9cf6g&oe=69B6971F", whatsapp: "593988532532" },
-                { id: 36, nombre: "King Pizza", categoria: "comida", horario: "Lun-Dom 18:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/438146373_2495185270681398_7745653841930054702_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=105&ccb=1-7&_nc_sid=111fe6&_nc_eui2=AeHcf-6SkakwD2VsVScVl_opU67zbp9FgrZTrvNun0WCtgKT4hTwgKANrXIAH4wrBmlETh4yaniJx7YT3ttvmtuh&_nc_ohc=kb0zXGqvphkQ7kNvwGgSmow&_nc_oc=AdkGbsdbuX2vpl6iTP5QS48SHu8vRLEazHuQc10VxhndCoLssRCCcgCi_Z-Rv9AdlY0&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=zGp-Ze_BpyzGP2_UpURcAw&_nc_ss=8&oh=00_AfzhGGuUXXlM7TOwtE6DMXk17-aygQLwfqy_00_7mdxhjQ&oe=69B69E6B", whatsapp: "593939832320" },
-                { id: 37, nombre: "La Cigarra Pizzeria", categoria: "comida", horario: "Lun-Dom 08:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/305844101_523823009642320_6454369542751057683_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEbsV5adXAMxag2pjknmz5evn8S2lOo8Ri-fxLaU6jxGHdqJ-3rLhsK4lwdae0J8wxIxHBOpwE_ifEtovNAONM_&_nc_ohc=0KtPAvhBDI4Q7kNvwEtnKAN&_nc_oc=AdkQZlQ4n_sIsHESDSso3GHTQFBcy68RrKCatyAAcrv5IV6_p42-WWMRGRvrXvdtDDA&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=9zQllv2hKmmKseVNATlehQ&_nc_ss=8&oh=00_AfzFaGc32sqTX5NvDQEJ4daOLFUagBQpavsNMKg6K6I8bg&oe=69B67F89", whatsapp: "593999830811" },
-                { id: 38, nombre: "La Farine Pizzeria", categoria: "comida", horario: "Lun-Dom 17:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/348846164_610129747845678_7811806159864543923_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=101&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFwXNeEWWkw2IZVx1QloygClYrXbaQeea2VitdtpB55rcjqe6bH_QstobQQrxoyb_b9Ujjut0xmsdyGLVWjO44X&_nc_ohc=-gZIrvfolw4Q7kNvwHauO7-&_nc_oc=Adlzf3_hIkCv_DOdS9wSt_Dc6LSZbl8VCOuRey6atzM51oRAkppnjl-Q5ZZ7Ejs5MGI&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=0Mx_JOIMNyV1aJJtn5pVKA&_nc_ss=8&oh=00_AfyzMB7I92tmDJaKSwAu4T4FMERDAYYleTEQb2HG4RVskw&oe=69B6926F", whatsapp: "593959936940" },
-                { id: 39, nombre: "La Fornace", categoria: "comida", horario: "Lun-Dom 10:00-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/277667427_653368365979283_1832641639075836305_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEcuJDybzOGBSZvU71cQDsg7W_oBShB7_Ltb-gFKEHv8qMjqRic_9t4RWCd2YJA67NOOctMVPwc4SY6XOzW63mr&_nc_ohc=vJ2PmR3CNo4Q7kNvwFmUt2E&_nc_oc=AdkC49j8sIOBuD1Dzj-A9HQwxvzPY3FJPGLqel1M34TJKb4U9yV1nG5C9nQV3xy0TWY&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=Ync5BwmY4P71iJAHOkZF9Q&_nc_ss=8&oh=00_AfyPs2QYTWOIZK7FGcTIJm2qtJVWcWx7fEDve9cWZw_Efg&oe=69B6937C", whatsapp: "593987495938" },
-                { id: 40, nombre: "La Herencia", categoria: "comida", horario: "Lun-Dom 08:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/501122135_1260830166046610_8238649423072702476_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEDTtGw-qa0wfaG35Ee3gFJV5lWVuHOIkNXmVZW4c4iQ8ymM7whtg5QjtZhxXi8LXEjmIBJYUs7yaiFSXu557kg&_nc_ohc=mjXvaGAkbj0Q7kNvwGQebC2&_nc_oc=Admdu_LOoQtemrb8T6egIG5EYwembKkiODui4O2UbCr5SjN2q0dqk1eq3viRNs1Hp1Y&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=3Lu1FMlW3Ll5ehWZEwYl4A&_nc_ss=8&oh=00_AfzAWFXI7Rtpufb26eWdZitD5zYpm5vppSS4f0JhaDkLyQ&oe=69B68B6A", whatsapp: "593987143048" },
-                { id: 41, nombre: "la VAK Pizzeria", categoria: "comida", horario: "Lun-Dom 15:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/584922504_2101716630655868_1687272450622262336_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEsEIvoSKU-wXJ5sWcJjA6wH7WwdIvTq0kftbB0i9OrSVvO8lvXjYulxXjursVGkGUVQo1pXUvijqOmb5bNvfuc&_nc_ohc=bbFgO5gLDlMQ7kNvwHMdNiK&_nc_oc=AdlwpAlzqbUl0MLLksMRoxRbuUdbD-ymgXrm5zlp_qSYGsMsz5tGx2ofQvvyoXOsb6I&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=NXgHS_NrXchq_qVtQG3Agw&_nc_ss=8&oh=00_Afxjq-PuChN1otJ10pF5kYvWIjrQPncA2Ny8cff1nYfsLg&oe=69B69E7B", whatsapp: "593968047347" },
-                { id: 42, nombre: "Media Noche Restaurant", categoria: "comida", horario: "Lun-Dom 12:00-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/432308269_1045049373895550_5041258103113723017_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGtAjCjyXAkd3uZxSwB-lEsK09_f5nMKborT39_mcwpuiks1ycWllKaSHQPOH6yI2oj4exwxbjllDhqf5NaCNEt&_nc_ohc=40xqeVD_CIkQ7kNvwFJ25Yj&_nc_oc=AdlMKtdggTtqa6sfj3gYPr-MBkGoVldBHS6SjvRX8aVf-6PCUgcrKv7Pf9FIGldiBHs&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=fyvtScQXEWMeS7nQD9EzlA&_nc_ss=8&oh=00_AfyA_hDWgpse-IYq_kyddeBDQn9Si1W5q7f-1PSqstQkjg&oe=69B6A8F1", whatsapp: "593998728580" },
-                { id: 43, nombre: "Mimo Parrilla Gourmet", categoria: "comida", horario: "Lun-Dom 08:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/430614403_934906938640069_6242857671498769087_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFRP7j7zw-QwEdBmTcySpoHJiFQEJeD_WUmIVAQl4P9ZZGY70Fb8MgHnT5xXB0xo7VkBSZqeXmpVLhm9sLN0P4M&_nc_ohc=S30eQklyaaMQ7kNvwHz7Ef5&_nc_oc=AdmYh9Puk_1TPguOtkYkNQlw7iPxi29z_YMEmkYgJQ-_Sc5qNEb-bDCcdeRFNdarbeM&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=7Y442hNgYjIcfV7OAbkSlQ&_nc_ss=8&oh=00_AfyxpR_L1FjDxS1SCDIW-6ntcCxh4HaYsaUyBTSNKivIhw&oe=69B67F87", whatsapp: "593999910098" },
-                { id: 44, nombre: "MM Wings", categoria: "comida", horario: "Lun-Dom 12:00-22:30", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/509421335_723513883371017_3946129834075251463_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEH2XnxkkgI0edoqJZhRKfYF3TaQwRxYvoXdNpDBHFi-uP3p8loEeoxRIVKrZciatzsSgn1lKEDhW_ZmVhy_Ht2&_nc_ohc=NXEoiRr6QFoQ7kNvwFfxI5G&_nc_oc=AdlUFRdwjaLaogFMfxuzHcoXDeakOWbsiINsaTVTfHmyGxGQefSUSynZpxYx65RH1Do&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=qtqgjgMIin3NE45KgEp9xA&_nc_ss=8&oh=00_AfzxbGBTck4w7t_dg8Lsz0EF2NIm7Nu9kBAyaEx8QVlo4Q&oe=69B6A84A", whatsapp: "593992758284" },
-                { id: 45, nombre: "Mr Parrilla", categoria: "comida", horario: "Lun-Dom 12:30-23:30", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/571811429_122097957867098779_4320252774682312722_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGlqFfiOaHLKP6Xsy0Y1AOXjap_MeJtvamNqn8x4m29qWFfAoKxvx20gAHtebGdDBWpyqKnTo6I0EIywAC6Lt_E&_nc_ohc=ujsQOc8M-boQ7kNvwHi1VAe&_nc_oc=AdnWTLawvspgLEg1pG8sw0xeatP_pqn-y_RNuYcxwT-aJCmQnFKUE6bp5J6obVIaTjc&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=iSCtTLytOSgup0YiRLT4gw&_nc_ss=8&oh=00_Afwg3VMPVIYQYzuvPO3xep_7xCPouOXYmQvb9rtJxnS0bg&oe=69B68C20", whatsapp: "593992770619" },
-                { id: 46, nombre: "Panda Sushi Rolls", categoria: "comida", horario: "Lun-Dom 13:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/471822173_1697660434123553_4600069966388966580_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeE_s4lRVHL_cHnTMfTLWvEu4Hk1zulajcHgeTXO6VqNwfRb2AAmA213FiM8dKw9Vq9YcMF9lOb70ingVWmmJb5v&_nc_ohc=pUPxz988vNAQ7kNvwG1mond&_nc_oc=Adn0ioZSwKJ_cEKUPfkFVbvHBgfUCbNB7s7PME6MIl2i1KYH9usWRaJA1z2nhwaIxjg&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=q-rGd5lCeU3coxuEXT4hoA&_nc_ss=8&oh=00_AfzGdjtzZb2SGZBKy8LVWbnPufJYpvr8Ke1tLSQKxM1OIw&oe=69B67FF5", whatsapp: "593996913797" },
-                { id: 47, nombre: "Pizza House", categoria: "comida", horario: "Lun-Dom 13:00-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/613107534_1502370345230494_3582767466053910831_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeExE-pVdJH08NV2i3D7e-qkQwDKh8Pd0ClDAMqHw93QKT4TUoDcybJ07Xhio6PAnZV-wISnJm2hSIrmlr0Ta_Dz&_nc_ohc=KgGDZoi_PkIQ7kNvwHxaFPV&_nc_oc=AdkvMSF57FLjqr65T9wgdxbJTCZ8fRZBCaUPnTxroxDOPQPCYDTPWs8Q-Y1jvQBcZAI&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=ms8GV8NLv3JdOC2YjeWf6g&_nc_ss=8&oh=00_AfyG_qGp2p_OU_p0D14zjv1tPOptBcH86PgOnNUsMXgABg&oe=69B67AA1", whatsapp: "593963032249" },
-                { id: 48, nombre: "Pizzeria Giorginos", categoria: "comida", horario: "Lun-Dom 15:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t1.6435-9/201091210_4077515742363081_5597865697688300592_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=53a332&_nc_eui2=AeHrDR2izwpwHdGI8sOjRhV9AYssAK8PqMgBiywArw-oyIPpnX8P9ZYLm_Z2GHDGWVJkgrhzR4WI6ectEoAAx2zt&_nc_ohc=vvVX1NB7LKYQ7kNvwHIe1td&_nc_oc=AdltzhzDd29O7yb51xr8Lc_h0h0wito5j497kUPTWqnfaqLzoJ1CZD4TG10M1ZkR0_c&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=E8fN4XQJ3pEXWDdo8KD-EA&_nc_ss=8&oh=00_AfyrZTnQYdxU0m-KMr9fTRnT95ErCRx7VOwxuxoUOpJZKw&oe=69D83942", whatsapp: "593998978231" },
-                { id: 49, nombre: "Play Wings", categoria: "comida", horario: "Lun-Dom 16:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/624531070_122094940761244215_4327728427822569769_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeG26PoN9JGccsI0z73RWOm451jErANraLLnWMSsA2tospBdTf14IbdDw9lODqMumUWQT59YtZGtDasFJavQF-e2&_nc_ohc=5CN7v5i1YCQQ7kNvwFO4HHP&_nc_oc=Adm-riXAlZqCwmjiHyRtqEUUHzlvwa2Yt_6Bc6MjJiFNDirFMXca78wqyQltCtfcxQY&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=i9LyRog3SFFy87TSNpE1OA&_nc_ss=8&oh=00_Afxi0j3e7r3ALMnT0HWnfrGmpHOXcKLD8uFRnWd2iyp0KQ&oe=69B6C5B4", whatsapp: "593987166040" },
-                { id: 50, nombre: "Pollo Alcalá", categoria: "comida", horario: "Lun-Dom 11:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/401600529_7555098721169333_5879996275937099232_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeF1cu2J3ewl-zjqS4qxmNyV6bOXpFBzRVPps5ekUHNFU1WHTTcGzW2j-_X-liQvkFfI4RYKv6PokUNedCCikr4T&_nc_ohc=7o6IecM9f7EQ7kNvwHQFd_Z&_nc_oc=AdmOtBgWp5RnTfFbzeaaRDSerFRKhjhmpXFbbSf41tN14dn7VxJRV7xbuFc9w1eJjDY&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=B2OBUuvN-AjFIdm2X7-57w&_nc_ss=8&oh=00_AfyY3fmirB13Sa7azRNi6avUAPFSZagW2wPZU3DAp6SpPA&oe=69B6B43D", whatsapp: "593992044617" },
-                { id: 51, nombre: "Pollo Campero", categoria: "comida", horario: "Lun-Dom 08:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/438129117_456512996749133_9218201782816859188_n.jpg?stp=dst-jpg_s160x160_tt6&_nc_cat=1&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeErv256n9_P9k7AAI-IUpgcIT1ySbTh-UAhPXJJtOH5QA2kNq6SBpizOwnoTv1DdryjP4A87o-iayM-gh4KgJ0P&_nc_ohc=Y46MfH_TuxoQ7kNvwFnsNqW&_nc_oc=Adl5AbkjyE63BL3wAXKT__mdgVDeY3Km9ZyREtA8Aqqrl9Nlawav_Za2GBHQgmmE45E&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=0oY6NNUDA4qGtlV6rGBmKQ&_nc_ss=8&oh=00_Afyqtbt7_Sm12uZCsdxrSAX75Uxa64LblmyrLeR2zVBR2g&oe=69B6C245", whatsapp: "593" },
-                { id: 52, nombre: "Pollo Fenix", categoria: "comida", horario: "Lun-Dom 11:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/335582304_274098598277184_6200930550957858682_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=103&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeF5jPBgdFKl6bItAi3HyJapyDwiutAHqzPIPCK60AerM7nF0iC1oDql8R12wcXK3wA3l0528FhdH8GJKaPlec9i&_nc_ohc=4ZNVtQTGgfQQ7kNvwEmpC0S&_nc_oc=AdnXXJCMiLT37TmmtmjkKnIDLK6B7QopMfj2xqybbQwyhxCS5RYCqMhQxByek5Js9HE&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=oFL6WBKDS5kFtN_lwz2_uA&_nc_ss=8&oh=00_Afz6qJVbzD5Wi62aVnfWbTPpMI5xgM-4zVxBrx7CZahgCg&oe=69B6C2D2", whatsapp: "593997696774" },
-                { id: 53, nombre: "Los Pescados de la Joya", categoria: "comida", horario: "Lun-Dom 17:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/589432185_1427150886079309_5350716386222423459_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGkZTPUds-DGBJ-qDYebHxAFOljt6dXkuoU6WO3p1eS6ofi_VMQr8mDel1tKnrHfyjLKc72wv3P9Lc21XnBE9TT&_nc_ohc=2GppFtz0gmgQ7kNvwFj8vsZ&_nc_oc=AdmarnAK4f7U9VcSKWw9xm-0p9Cv6Kb7yL_9SCuDC5ePTQ2oaG3ecW0-jtvSD37wsLA&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=VSUAcSJmOh5MzljQQAS4fw&_nc_ss=8&oh=00_Afxgd3PIrS-t7BdEV4mYNTQYgpSLm8g2QyEjbN3K0fp-kQ&oe=69B6C886", whatsapp: "593998056666" },
-                { id: 54, nombre: "Potato Tornado", categoria: "comida", horario: "Lun-Dom 15:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/622791996_122094827967248200_1116879838597067475_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHP4c1VlT3e8aB2rog1DSiZAnSUs5ZXgWwCdJSzlleBbFiXiAN9JlJFBycjWXIQSdSv-9QtCDetMWTLahIrJfsr&_nc_ohc=zbotHLoYW5wQ7kNvwEIuKYV&_nc_oc=AdlDr_cP8CQr8wdjEWm1Nm_zti1NxdVj4x8sKnQVSO4q2vtYXZ3etNUOfCh20CFXAkc&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=S02KUbxfd4kgXu-1kz2P6g&_nc_ss=8&oh=00_AfyiGAOlMUdbW6wc62hFOjwqCwv3VKIObGRqjfdl081Irg&oe=69B6B67A", whatsapp: "593997652839" },
-                { id: 55, nombre: "Que Monada Bolones", categoria: "comida", horario: "Lun-Dom 08:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/527676707_1292928652840368_3570600717454836506_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=105&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFpXI-rNOfwvAwOritCcT0yiv8-pKaiApKK_z6kpqICkqYbaGR2FrTjzaJVhUbt3KONerDk6UgBiltrqPF4sT2A&_nc_ohc=AbJ4SBb_olMQ7kNvwHRITX8&_nc_oc=Admfye215WnXr_4ZlcZZvKCr29uBpCKt50vFtbSF1r9Q5PRJQZ26frdfeHc1kdKZkx4&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=x75GY-V1SFux3ZMYDHeMPQ&_nc_ss=8&oh=00_Afx3xh8Q6-1ER7iCveiyS5Tm6oNaAUNvu7xgLfjhhuRbWg&oe=69B6BD7B", whatsapp: "593963772912" },
-                { id: 56, nombre: "Roll and Bowl", categoria: "comida", horario: "Lun-Dom 13:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/333306512_546575760786886_5735414084607118416_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGI8i33-it5enRHYXqIF2HAFZPC_ZVIDHoVk8L9lUgMeg1hEB0YBZBXSlsNHYgiAlyQmalHfSHZQBJCs_C6gYOG&_nc_ohc=VJhUfyWa2DgQ7kNvwErGOtb&_nc_oc=AdmcOg3njWnyDpOLY4YBTdg6yDk0PSe82oLf1Fb-u1Te9KkvxgERKTuZ0Za5wAGsv1Q&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=mlt6fHPt98tYxndUeeQk8Q&_nc_ss=8&oh=00_AfzwPiTo5d3TsIrtagBrLVvykS8HP5RI1YSGtGGzI4YvfQ&oe=69B6A20B", whatsapp: "593995192441" },
-                { id: 57, nombre: "Saiyajin Sushi Rolls", categoria: "comida", horario: "Lun-Dom 12:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/417796962_122150945402033141_3936430164943397854_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGsKwxUGmh-fHM_NWUigk7ZsIH_p_5wROWwgf-n_nBE5bjFlleWfTXnyKb81DmO89IndFoN2PJMJyNoX42YupLk&_nc_ohc=0mgQH_OaG88Q7kNvwHR1m-z&_nc_oc=Adm8-UW1I3vjgnpnXHGpSIawH0ILby0to3KWSa4RTnxTSVYt2Gr-31jFhZ5_OAJURVw&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=MM5gqGUvTktQHsEslbjv3g&_nc_ss=8&oh=00_Afz0a53X_ESbRaFVt5jwlkXSuGzXIwPr7RFaPNWIgXRcVw&oe=69B6C74C", whatsapp: "593984579590" },
-                { id: 58, nombre: "Salchipapas en Balde", categoria: "comida", horario: "Lun-Dom 16:00-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/266552954_436650061439128_7818364273346849616_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=103&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFs9rxBWINNWYMQDu10HJSEfz8CNBGXtet_PwI0EZe16wlDUKOdCbHquFra9T94w-fNfvHfKLDbcCxOhzY4ykoX&_nc_ohc=BGzD7NopAg4Q7kNvwFgR-GU&_nc_oc=Adlc3ff7x-BGqpQbztErP72nCTCE-9f7vVhxr8Ob_uctwywTkkPi6FQVH0iRTJRoaqE&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=-H-MysKqYcCzW59jVmicAg&_nc_ss=8&oh=00_AfyUGuMULR1Q6bDgNg7T-3gz5KOV2MyR5Ks92MZcCAmbyw&oe=69B6C0AD", whatsapp: "593986567320" },
-                { id: 59, nombre: "Takumi EC", categoria: "comida", horario: "Lun-Dom 12:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/558985553_122106302187036667_3170661281404566456_n.jpg?stp=c0.178.1080.1080a_dst-jpg_s200x200_tt6&_nc_cat=110&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeGhQjd9E4VSbV-0iVMpOrfH9nRJYI81SB72dElgjzVIHqJdz90BRubiaCbRTltGghE6EWa5_F1hx25YBIx2CMUo&_nc_ohc=W2zcDRZyuBwQ7kNvwFogqYf&_nc_oc=AdlufSg0NZm3z31CH0G0JL8WtcyVbeAXRHaSfCFeUVlmRfgUfk-q4LpzkBBnLSw_y6s&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=kQ7hK157DUh9gEi7i-IijA&_nc_ss=8&oh=00_Afyug8kNM85ps6wTJoVrFWKRN3ORaImGPUucdsiw78wNWw&oe=69B6B7B1", whatsapp: "593984113454" },
-                { id: 60, nombre: "Tokio Fast", categoria: "comida", horario: "Lun-Dom 11:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/638742168_122094618549280545_5553277198973546008_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEHoCSRYsbfL3TnQHGJ1utdxqgxG1cv1IzGqDEbVy_UjOVvaklZnPuwukO-Y_3rKsVij-T1WM80JbO_BFdz09ms&_nc_ohc=IPa9gUmDsGYQ7kNvwEblPOS&_nc_oc=Adn-MqVB9GrVb6W6UXoELb-ZetKBQ6cvI5-lKdJ0r3OKuzt55arWAb_rFGyUt-F-iWg&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=qxuTpW2lrfJeFSIT7n1-0w&_nc_ss=8&oh=00_AfyjltdMe8g9Tm6DiD8wmPn-B1493DiK4_8NNxkEK1kVTQ&oe=69B6D0D6", whatsapp: "59358622905" },
-                { id: 61, nombre: "Mundo Cake", categoria: "comida", horario: "Lun-Dom 08:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/599733361_4390342651230235_3669482046102545266_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeH0Wkrv616CNqxZ-Q7ArTgaSoaMmJb5IL5KhoyYlvkgvkOYp-vOWVA7Q2pjCXUWxhnxXfGQcOaPLodItdKC1Xuj&_nc_ohc=puNTgZgc_Q0Q7kNvwFquMkS&_nc_oc=AdmzLm2mrraJzTjr2RHIxbYVX4erTxRQBzgsW5s_R2l08NsMR_bcAYYb3jaxrK-fa3g&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=U_jepstyCQ9jqkGN_fHbTQ&_nc_ss=8&oh=00_AfzZ-u1TrPK78OSAuAT3L6M5Q2JC5lrs-lMtKOzFp0JqqA&oe=69B6AA74", whatsapp: "593998199966" },
-                { id: 62, nombre: "TUS Alitas Ambato", categoria: "comida", horario: "Lun-Dom 17:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/447976036_858635926286650_5089736033507553085_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFGCz9NeWrOZeNr4jh-XjkkfDxBJOvAFXl8PEEk68AVeWmdEi0Ur4LCdFH-ks734rAlppL1OyQkYRD9m_4Istt0&_nc_ohc=6JFr08PYGJ4Q7kNvwF8_L1U&_nc_oc=Adm7-IPxrgf4MYpLk-6X4xYevnc31kdL4DR-ouQNRcM9ySNYhR8LNf4VAIpxztaVsJI&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=R2C2B5qgFC_pm32x7wCkBA&_nc_ss=8&oh=00_AfzPLr5f-RXqT04JJ5PmII1jGX53xWNwd5MyCdvV7J-X-g&oe=69B6AAFB", whatsapp: "593981191017" },
-                { id: 63, nombre: "Wings Garden", categoria: "comida", horario: "Lun-Dom 15:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/606071490_852249674238547_3832507362549033867_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHxMsY1YsVUKmoh6HOfbuQpO7KAPOs_ERg7soA86z8RGPbBVZkmypB_oFz673n-Mo81WQ04NW6SewQTQfj_i4hM&_nc_ohc=M911JxzUqpMQ7kNvwHtXN9s&_nc_oc=Adlpf6z_5F06jP-dhrNk_sMQrFFKCu8ohIToEtIoThO5hcdKFAwIowDbj9Bk3aII3XI&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=lJ8VylEHJe0ZFiRjcTMOXA&_nc_ss=8&oh=00_Afx1bCBzgKe1xI_QMPBTvvtuHvK8HAaVrK1mV6l_Rm3Gyg&oe=69B6ADA7", whatsapp: "593998098912" },
-                { id: 64, nombre: "Your Burger Fast Food", categoria: "comida", horario: "Lun-Dom 17:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/641021357_122148482054979538_5341626030134583967_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=102&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeELs9RvCxXUep6WW1tP_iJcCho-nsJqcVMKGj6ewmpxU3BzgZOPOGGFGttftlJ8BQ3bmD6X49QRuiEqgQEMD9Uq&_nc_ohc=TQO7Be4jl_0Q7kNvwFgG0CZ&_nc_oc=AdmHdaW2Tji77pb39zVnEFsSuv_uuLlImgo2HODytHMGtIBiyDJI10eXWOm2JeVk1MQ&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=TwouVLoxWEQpeGO8O-insw&_nc_ss=8&oh=00_AfxOYMIoTfcu0s_Mtalt_NOtjJdm_dk7TX7q_Jp-zMMCNw&oe=69B6A101", whatsapp: "593998048666" },
-                { id: 65, nombre: "El Chiflido", categoria: "comida", horario: "Lun-Dom 15:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/341269133_778505203630183_7609429654628130241_n.png?stp=c79.0.1364.1364a_dst-png_s160x160&_nc_cat=100&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeEnP679mZCj_XlY8UuCEO07WSfyESqSrY5ZJ_IRKpKtjtxRmpnJkR1l8OdHRXwqo-scUANC_pjO67EyM5zeF-wM&_nc_ohc=9ys_S1-jiN8Q7kNvwGVAd1l&_nc_oc=AdnlwAPeW21xhVm3qHGm-CuMt9KpnWp5qBGJfmPRAkkJOXHkfxqtYj31Ed2yvNOWTN0&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=QhdNouCPio17r_AwZP_zcA&_nc_ss=8&oh=00_Afwv7zYPmW_SncZP7Jkwv8YD5onmORqhbg3Eo4G4tp7V_Q&oe=69B6AB43", whatsapp: "593979342895" },
+                { id: 1, nombre: "ALAS 8 Ambato", categoria: "comida", horario: "Lun-Dom 16:30-22:30", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhuECE4c470GkAKb1Ko8MjLqaCDw6eAAxHu-FKBi0qARb3fskxo0_8AJPXOxccibotRdbGmbHik99v8r7ZiKISEPwsvstj-9FCN9ABj9lXHve0-eHdRpOgkk3RkvUOMHf8vm3PqQYL3p3oACQDelapA4N6rK5JtjEe66CDg5Aez_VuaDRf1QcEgFmc0ccA/s320/Alas%208%20Ambato.jpg", whatsapp: "593987788964", lat: -1.25568, lng: -78.63162 }, // coordenadas
+                { id: 2, nombre: "Apapear&Sweet", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhBQTNNic_39942T7xMqvVlRvtOqBqPypc0WmTszk-7PZ66OhCyNTDpnvCXyxbSAi9ae19e3gVgQ9-pBH8RbuFmoVVhxjVe8ViUGpiaefaw1qCDzkuV1eiq_cj04eYKDxL4HQf8GvqCKKUO5KNbhZD5XStN2aly_IaIheoJFsouL08EK8M5B5cCZ0a5uoQ/s320/Apapear&Sweet.jpg", whatsapp: "593962872182", lat: -1.24495, lng: -78.63075 },
+                { id: 3, nombre: "BerdiGrill", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiU59ru8ll7imu_8jXJb-UJBJAP_8sBJQfKHSeLua5Qpaaf4H4_7EjLha9Bl8Jv3v8gaPW4sUbHb-1sIUii2572wDrHKtu_e0CzHII1_xdPxt_Rlzkbn4yiYyPvdOssfx1HBTs-woijJ4zv3G7oAQaZZpZWCHCLYplXSlONltlp8WkYCLd4_rnUwtNCyGI/s320/Berdi%20Grill.jpeg", whatsapp: "593981779177", lat: -1.24558, lng: -78.63064 },
+                { id: 4, nombre: "Bolonche", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj3Bmo_-OOh1fZWuAIPJtZ3sKxT6FjQSJZGZx_BGLSj6cj4T0NR818zn4MQCZIbv_jNpMOXODlcIhrSoGDPJzq8dDqDXTEM_eEnRSJcI1xLRMqUTNANiaD8lvz8tvvbVM4EV680dzq9OaMxHVpPPdXpDYT9BQqqoSLOjGN_Cu0ufCYKsBVJpZ-QLGckglM/s1600/Bolonche.jpg", whatsapp: "593991495550", lat: -1.25366, lng: -78.63690 },
+                { id: 5, nombre: "Brissa Marisquería Los Shyris", categoria: "comida", horario: "Lun-Dom 8:00-16:30", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjpE2H6bwEn5GsZiro4wtOIL5q4TLPBniyZ-kgDczDkUhXGDCs-lqtKZAxg30C2uynpA4XdIDi0PGZIWAf9MrljbRaCYhA97k3yW1UFmv33DsZIOJ4yPygFnjk2wcPdpu2i3pc_9SZh8OjZBvHTr0VHAZwAFJUq1wIFMlJ4Ldmy9PP5inkPWSH-WM9E3ts/s320/Brissas.jpg", whatsapp: "593997081252", lat: -1.2585, lng: -78.63070 },
+                { id: 6, nombre: "Brissa Marisquería Izamba", categoria: "comida", horario: "Lun-Dom 8:00-16:30", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjpE2H6bwEn5GsZiro4wtOIL5q4TLPBniyZ-kgDczDkUhXGDCs-lqtKZAxg30C2uynpA4XdIDi0PGZIWAf9MrljbRaCYhA97k3yW1UFmv33DsZIOJ4yPygFnjk2wcPdpu2i3pc_9SZh8OjZBvHTr0VHAZwAFJUq1wIFMlJ4Ldmy9PP5inkPWSH-WM9E3ts/s320/Brissas.jpg", whatsapp: "593963839302", lat: -1.22717, lng: -78.59154 },
+                { id: 7, nombre: "Brissa Marisqueria Huachi", categoria: "comida", horario: "Lun-Dom 8:00-16:30", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjpE2H6bwEn5GsZiro4wtOIL5q4TLPBniyZ-kgDczDkUhXGDCs-lqtKZAxg30C2uynpA4XdIDi0PGZIWAf9MrljbRaCYhA97k3yW1UFmv33DsZIOJ4yPygFnjk2wcPdpu2i3pc_9SZh8OjZBvHTr0VHAZwAFJUq1wIFMlJ4Ldmy9PP5inkPWSH-WM9E3ts/s320/Brissas.jpg", whatsapp: "593989070245", lat: -1.27611, lng: -78.63121 },
+                { id: 8, nombre: "Brissa y Marisqueria La Primavera", categoria: "comida", horario: "Lun-Dom 8:00-16:30", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjpE2H6bwEn5GsZiro4wtOIL5q4TLPBniyZ-kgDczDkUhXGDCs-lqtKZAxg30C2uynpA4XdIDi0PGZIWAf9MrljbRaCYhA97k3yW1UFmv33DsZIOJ4yPygFnjk2wcPdpu2i3pc_9SZh8OjZBvHTr0VHAZwAFJUq1wIFMlJ4Ldmy9PP5inkPWSH-WM9E3ts/s320/Brissas.jpg", whatsapp: "593985372085", lat: -1.28252, lng: -78.62145 },
+                { id: 9, nombre: "Brisa & Marea", categoria: "comida", horario: "Lun-Dom 8:00-16:00", imagen: "https://ideogram.ai/assets/image/balanced/response/m6DQ3DYGRSW4I_POK7Selg@2k", whatsapp: "593000000001", lat: -1.26538, lng: -78.63033 },
+                { id: 10, nombre: "Broos Burguer Las Chancro", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-1/473259287_624976316711774_3226442731634568411_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=107&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFmlzrMP9JOkRM4MKayL3bDygctMw34phfKBy0zDfimF6xiOe6OMqNyxXoRGioRWiv3mK04aKekg_08Pk1WE77n&_nc_ohc=6JNLmOpQkwwQ7kNvwHH2Ena&_nc_oc=Adkz2ufN0l7QFYNeHAebgiyMUkQqSkyXCMw2Jw4Vf_bGP0dZPCrL54BE-HCOMmMIsj8&_nc_zt=24&_nc_ht=scontent.fuio11-2.fna&_nc_gid=jGeSd1CdySUWgbxVEdP-hg&_nc_ss=8&oh=00_Afzjf77EW5jzAoy51WOCE4k_0l75zEORo1-LHIM5WKpCJg&oe=69B576BC", whatsapp: "593995393794", lat: null, lng: null },
+                { id: 11, nombre: "Broster Casero", categoria: "comida", horario: "Lun-Dom 13:00-22:00", imagen: "https://scontent.fuio11-1.fna.fbcdn.net/v/t39.30808-6/463415695_1072927928168350_429729094889415116_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeF4OvoftKO_ha8Ghf1iGmwoz4B5C1rrdFnPgHkLWut0WV97RFy8X8LvN1JTLDzCvelwgHQgiIXGFjGjctGPhYfy&_nc_ohc=OOLAH5dBdZwQ7kNvwF7DiIH&_nc_oc=AdnyTCpwH65N-38UUPRvNh7AxIALaheuvT0XJ_682g_qh7CLTDLFRx9GdV-ljPxnWiY&_nc_zt=23&_nc_ht=scontent.fuio11-1.fna&_nc_gid=wOEZefdF7npM9nNMiZWCWw&_nc_ss=8&oh=00_AfyY9YBole6IKw_1z5tqiwL1Jhqz7Ne67A6baCkLGatngQ&oe=69B57C9F", whatsapp: "593960058909", lat: null, lng: null },
+                { id: 12, nombre: "Camaron Reventado", categoria: "comida", horario: "Lun-Dom 19:00-21:00", imagen: "https://scontent.fuio11-1.fna.fbcdn.net/v/t39.30808-6/447429079_986902356770522_1496177889529826339_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFtftRicDlGBcdB-Nu-kuBFnJNCDWRcDCqck0INZFwMKszBR2d78e729ULD4qNJ9wT1qSO7X9zdyLwfStIjT-9o&_nc_ohc=ky1Pee-lVHAQ7kNvwEqE_ei&_nc_oc=AdkbmRYt6XAQ42jBLJtys5ggL-aLuxVYubterPyMTuhpeGj3UHD2Pw_vzS6bZslupUk&_nc_zt=23&_nc_ht=scontent.fuio11-1.fna&_nc_gid=Hyu1Y9uuB1FPNPAhKOfUPg&_nc_ss=8&oh=00_Afy8pX8_9kMOchvTFa_3Njqob3CwLn2UpG0oRZNwxkgr7A&oe=69B5A0E6", whatsapp: "593987333113", lat: null, lng: null },
+                { id: 13, nombre: "Chifa Global", categoria: "comida", horario: "Lun-Dom 10:00-22:00", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-6/324235238_649603013608491_8203603425919112615_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGmYL_IrRQESq0CUoD-HbJNZCeb-BwIg6tkJ5v4HAiDqyuFsteblTZXM96E9g4Sxo5KLctrF4-GVigyGaIkxN-5&_nc_ohc=vPIbz2uM-nsQ7kNvwFCcGiy&_nc_oc=AdkB9yQ6uhFi8Puy6oQcx4cldm8UH2dH50MKCKUvpf60hlvz9obRoS7Gn0kua5u0s40&_nc_zt=23&_nc_ht=scontent.fuio11-2.fna&_nc_gid=ErYS8wRZK5kl8COinUwh6Q&_nc_ss=8&oh=00_AfxGRMfyV6p5EXALJP6t5Q-qIiXVC1ugFCN_dO9vIq1spg&oe=69B582DE", whatsapp: "593968412781", lat: null, lng: null },
+                { id: 14, nombre: "Chifa China 2", categoria: "comida", horario: "Lun-Dom 8:00-22:00", imagen: "https://scontent.fuio11-1.fna.fbcdn.net/v/t39.30808-6/306008730_503978325067386_5882592404201301342_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFL9IM0S7ze9lBQr4MoiUIhEZtXSHKnwewRm1dIcqfB7MPmeiwC6WQ8iFMjjz4T8LSrhO1ww-dszOq5G0ehcNhK&_nc_ohc=xt1W9gt9ceMQ7kNvwGKTVCo&_nc_oc=AdluFPWHgFlCmotpmLfBhP2a6ZG-Ersam5lRSLU9EJMBw4x2nzqOxo6QN9fy676QQmo&_nc_zt=23&_nc_ht=scontent.fuio11-1.fna&_nc_gid=9o2ax7yT4zwFld88mXjsDA&_nc_ss=8&oh=00_Afywevg_CNKy2cpaxN3cFLP2NA3iX1gv6-C8iIgcotCEAQ&oe=69B58981", whatsapp: "593993768037", lat: null, lng: null },
+                { id: 15, nombre: "Chifa Yin Yang Yahuira", categoria: "comida", horario: "Lun-Dom 11:30-21:30", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj9oacdi4QOL-q_Ewa31gd3gceFaJmlvQKiQA57weJrxL9BdIJA0WLHLPSoM8qdcrR0QCStI2OmqVJ9JQ5rYx4IFpRnjHfFy6wX0FFt13frDdNqYshtJK7OhtSSERCeJYyLcLCAsDARX0l89rK5YjU9kXdjVrBFFKWbTP5syot56vM0-nGr058vFRHoaYk/s1600/Chifa%20Yin%20Yang.jpg", whatsapp: "593969443679", lat: null, lng: null },
+                { id: 16, nombre: "Chifa Yin Yang Izamba", categoria: "comida", horario: "Lun-Dom 11:30-21:30", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj9oacdi4QOL-q_Ewa31gd3gceFaJmlvQKiQA57weJrxL9BdIJA0WLHLPSoM8qdcrR0QCStI2OmqVJ9JQ5rYx4IFpRnjHfFy6wX0FFt13frDdNqYshtJK7OhtSSERCeJYyLcLCAsDARX0l89rK5YjU9kXdjVrBFFKWbTP5syot56vM0-nGr058vFRHoaYk/s1600/Chifa%20Yin%20Yang.jpg", whatsapp: "593958937282", lat: null, lng: null },
+                { id: 17, nombre: "Combo Loco", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/502948997_122154477530546031_877418617723055673_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeG7WMpkQt2EKdeOOLwOngspP-w-OFr0zu8_7D44WvTO71OBCrNXieIpktA1DLOUzZbGT5yUjPMqKgy7Ju-xfWvi&_nc_ohc=1KDaQG0J_JwQ7kNvwE1ZFjN&_nc_oc=AdmicJE9DCTEg1DDzOrCOWwB5imaHQ36iD6-GnDZmN6ejWQZTqX7HXxvBQ6mSqBN2PM&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=7JbCnXGn49hbvLalMFUegQ&_nc_ss=8&oh=00_AfzVxXV7rWifoa7COJAenRKN8_fxASJrCrJKTrGS4GwS1Q&oe=69B59DC8", whatsapp: "593979065635", lat: null, lng: null },
+                { id: 18, nombre: "Cosmopolita Coffee", categoria: "comida", horario: "Lun-Dom 08:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/277518129_508116557691966_7695132929388714249_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEidwhsblqnG06QgZh0C8S5seQN8PIVDzWx5A3w8hUPNZ6JEA9d74e8LiP55sWPZlWb4FrxFqYReOV5YWallaO8&_nc_ohc=20c3-gRg0vAQ7kNvwHCdKQp&_nc_oc=AdnGDEDO84Mk3PprgiFmWHX1rCWADcyVCNrAdZL-A6pTCKh0VwhC3RHJjZAFgsCVlQA&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=1VckSaFBXcyaBcQwDgWryw&_nc_ss=8&oh=00_AfwWZsu9vShWLTm4gL3Tl4FKiXMOeqwT3kX-DnqaZrMLLg&oe=69B57A89", whatsapp: "593995212341", lat: null, lng: null },
+                { id: 19, nombre: "Donald's Pizzeria", categoria: "comida", horario: "Lun-Dom 11:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/277220526_1455821658205295_2390483768106643751_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEWKXn3dLvMnETBCsPQpa8s88WaNYddFZzzxZo1h10VnLo9dK14g9QIjYiFagRl5vD1TzWaGzdKjfQUYB19IDuC&_nc_ohc=bVKt7Q87mtkQ7kNvwEf7CGI&_nc_oc=Adnwj_frwgYikouGSltkXe9PZLtxFV19PKgI50coD13cvPbddW9FDilt0vmvjoffmsM&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=_qf57AjLK4l6rE1f8KwWdA&_nc_ss=8&oh=00_AfyiYIlK3JjHbrC3YfGw9D4QK1wj5JeLhWKuc4Tt1g70Iw&oe=69B5888B", whatsapp: "59987132620", lat: null, lng: null },
+                { id: 20, nombre: "Mini Donas Gema", categoria: "comida", horario: "Lun-Dom 8:00-20:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj8_lhujW0Hrij9XYSuo_r4RWVOBUDrVBecnWzJ8QOtiRlL8jVskgBK19omYGxwWwpCaZPUBmiblBvPKyzrQOdRSX5AoalirlBGCoK_vE9wJl3jVqEeE6dh_L4et_AW73rO0iE7R7114Nhp7eCe_Rnj-gF2t8dyvHIJuAA_FQMAK1SHKGo2Rn3P9lDsFhk/s1600/Mini%20Donas%20Gema.jpg", whatsapp: "593985437890", lat: -1.24152, lng: -78.62511 },
+                { id: 21, nombre: "El Lince Restaurante Ficoa", categoria: "comida", horario: "Lun-Dom 05:30-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/312797864_527399716062653_760125280153907724_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFwexBfEMw4SoEb1Npgd6s_TYegaEIWc0dNh6BoQhZzRxDeM0fERVh8IwPGOFDb3X4HFMHVoWNNKExes6Yuwj4K&_nc_ohc=zVxle6KeurAQ7kNvwFVBg1y&_nc_oc=AdkHQypKU1VOpKyjTw31_97RXG3Vqan5v_eBkVFi_cB5PML8sJKHYA9sUwlK9jebXsE&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=1IIilUXFqiZtsRjsR7L4KQ&_nc_ss=8&oh=00_Afwc5aCptQ6NP8fE6uUv6cBuc6DsxUVeZMJqAB8rAd9Jhg&oe=69B5A7FA", whatsapp: "593999838222", lat: null, lng: null },
+                { id: 22, nombre: "El Paisa", categoria: "comida", horario: "Lun-Dom 09:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/481192799_1165630425264408_8618983295905014575_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=106&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeEM-RopsjUvJ74QNrxpQhbOuihMLArIX866KEwsCshfzme2-retoNwlWw2wo53-TbwFazQ8G3jUlPQHR-divZMB&_nc_ohc=D4wSO1xjgI8Q7kNvwG4JPWw&_nc_oc=AdkHxtEs19_xfT1zknQ9QmV7f0BBvZmyrBosG7AOPKahqR4bnXaFdp5cCmaVYmhH-j0&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=jxx-cBnAMaAjcy71gZv8xg&_nc_ss=8&oh=00_AfwG9vTg7AnBagMN7bJESR6-zaj1iToKHAX-XbMt3dYlbA&oe=69B5A347", whatsapp: "593969296962", lat: null, lng: null },
+                { id: 23, nombre: "El Parrillero B.B.Q - Grill", categoria: "comida", horario: "Lun-Dom 12:30-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/275788264_1006029057013104_7858098551674536120_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGPCji0He-SFHNR4SDJcVuMkLGU4VdG26WQsZThV0bbpQK2fCWEtYXHu1y2x5e-ZifDGD4D4NYF4a3Aa00OQvrC&_nc_ohc=2LRmy0IfoJoQ7kNvwFC1Gp6&_nc_oc=Adm4MxU_qg3UggIARwn4yGAakDpsdMHoA9ArMNJVfQQF9AYEjX1qN6qZ2Wt1rF7qxuo&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=NDhZOV8bsSgq7NTKxFaRUg&_nc_ss=8&oh=00_AfzfmxiGGoZPpECS7KyrDjH5zVoSpG9iixhssHm2o9CeDg&oe=69B63395", whatsapp: "593998831980", lat: null, lng: null },
+                { id: 24, nombre: "El Rincón de las Alitas", categoria: "comida", horario: "Lun-Dom 12:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/299028849_481630583969040_1465233177648730246_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeELVzGqJGt7CGyYPDRHxxslU4wJ6Y-aTZZTjAnpj5pNlquuUYrVNFyjzlPRh_I_MGjeBxqNkUMQ_yLGGl0pysK0&_nc_ohc=_SMFwZSdMOkQ7kNvwEvYg68&_nc_oc=AdnZA32Gb9qNHhmWah0nBWu_EbNFOuT7Yci1KCG6ipuB7j5hyyV8V5a0gMnaGdyoN4Q&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=ULngEY0zTJyXDzAmc7Z8qA&_nc_ss=8&oh=00_Afym27-rZi69DcUTcuNIv2F2LAqG-Ga4FBbOJ9VsJAO_2g&oe=69B65632", whatsapp: "593939570497", lat: null, lng: null },
+                { id: 25, nombre: "El Rincón Venezolano", categoria: "comida", horario: "Lun-Dom 08:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/419747416_1147184239961204_3971524108542861410_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeH4UuH5-XZTi7YoyfI8kxfA29r1niRxxwrb2vWeJHHHCvbKP4B049mwwxlb2x9wHw0MuYU2BLuYQSkDxaLOujIp&_nc_ohc=w9QqiWPfI4gQ7kNvwGhBL4N&_nc_oc=Admr6hGQlQ9dQ32jcYbHuKpPeGUqrJ14oWVBmivcDF6HqNxgy5Ea4UICetA4mXyohUs&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=4Wl6FnWOxf8mc1712ym8GQ&_nc_ss=8&oh=00_AfxtYnKd6lcFFO7XaIGh23mB0f4mvSLBrBXfIYos5jNv2w&oe=69B63176", whatsapp: "593999743143", lat: null, lng: null },
+                { id: 26, nombre: "El Sambito", categoria: "comida", horario: "Lun-Dom 08:00-17:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/489461118_1341712894108661_5190953202013349686_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=13d280&_nc_eui2=AeHHpkdg_5iTOwWlI9-gYPZIhPQuRK-nguyE9C5Er6eC7BSOWrUHgdce9-esaTkapl7RgjFm7zLwviIJtYYRvHZv&_nc_ohc=VfjwlkxcZgUQ7kNvwH-zxLB&_nc_oc=AdkN9tr2pEgltErfwXi_9Ew0ppOt3ti3qGmKbl4dKb0cJnnO__SzN_bG-mDb-O21I6Q&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=hQ0avVAADq5MwwykGRgHgA&_nc_ss=8&oh=00_AfwyMNEgVJ2TNZE95fLqK8cbBOCwSZmg2ykX5wdiPhtqOQ&oe=69B635D4", whatsapp: "593986176511", lat: null, lng: null },
+                { id: 27, nombre: "El Ta-kamex", categoria: "comida", horario: "Lun-Dom 12:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/241202347_1389951938107971_551250029100800338_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFBQwQYNArZDpD3QDEbmJq5KnI6HDMb3e8qcjocMxvd78Gac-BsAbh93BzlgANtKTKqhp-6rQIdHwV--DQaLwRj&_nc_ohc=WbAEQHof0mYQ7kNvwGvm80Q&_nc_oc=AdnXaXWMh-LRm3Pc3ZqD_jpa8cTnWfZ-96HWNgUPpis5zihEEA-VHyR0_w1aYgxb4ss&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=_GajwyvNyxGpaXc829FmpQ&_nc_ss=8&oh=00_AfwhqyUwb2dxi_ZFoMYA1B25XROgMkcEJmq2SHYHy5Dk6Q&oe=69B62F4B", whatsapp: "593979019576", lat: null, lng: null },
+                { id: 28, nombre: "El Toque Guayaco 2", categoria: "comida", horario: "Lun-Dom 08:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/487487774_122097865850828413_5927905605107483944_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGduFkfxYcxDN34WsUea8Ws8S-LfnzrXibxL4t-fOteJvHsG0pXbvpPIpYzgeY0qk_DACgIt_UXcEioH26mlL_a&_nc_ohc=WLnJqUsIseMQ7kNvwHaw60p&_nc_oc=AdkpR7eC9Q9FYkEfkiRRv6ff9wV0d8fQrUiueEwypJlBTD9KRHltykFwKzKRfyfF1Os&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=y-1kacnW3cDwJgJjn6E1oQ&_nc_ss=8&oh=00_AfwhKli3iPO_H3f2tOTLLSgRGkLrts2sG4-0LyKZ_y0N-Q&oe=69B656D1", whatsapp: "593984135801", lat: null, lng: null },
+                { id: 29, nombre: "Fast Broaster Huachi", categoria: "comida", horario: "Lun-Dom 09:00-10:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/346289427_216745434435328_9163308069513517892_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFUs1e766a0BYRDKIVuulMY_H4kWmuhVAX8fiRaa6FUBT4FPcILqpFzyTRXG2KwbX9r9nxUKrgpIw3fOYB5iEyn&_nc_ohc=09XqPBGmPjoQ7kNvwHYziwG&_nc_oc=Admsjv2BK3C2b99eGQvdnelNX5bc6g_QaSMtR2a-8TkgF3UApSDRenJuVPksAiXF82E&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=-41fJk2IrMKmFf_psg3rJg&_nc_ss=8&oh=00_AfyXARnJbKG3tsp9r1m3m3EG5luooKkIQmgWXZpMKJMmSw&oe=69B69431", whatsapp: "593990531538", lat: null, lng: null },
+                { id: 30, nombre: "Fast Chicken", categoria: "comida", horario: "Lun-Dom 18:00-00:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/334012478_776884907192970_7432870570782055366_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=53a332&_nc_eui2=AeF7r7MVJuFJZWtWxBDENw6oOMKzvqf1nSQ4wrO-p_WdJNhTbPjcSg8Cwlnkdg8DoQVXl_08VqNhwy4xRTI3uqVY&_nc_ohc=yVrXvPZp7AcQ7kNvwGc6jg5&_nc_oc=Adlpom1xEKmwsXaLvaCFvZbKKrfu7_6mkcfOS89cyrlD1SnhkDroh6J16AcsBpz2q-A&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=1d7BYzoDY2YDejBi7_B1oA&_nc_ss=8&oh=00_AfzjS8DliPPFfvI5hHww9S0494Ksv8p_64e1WYjHzaFeuQ&oe=69B67B28", whatsapp: "593", lat: null, lng: null },
+                { id: 31, nombre: "Foggatta", categoria: "comida", horario: "Lun-Dom 17:00-22:00", imagen: "https://scontent.fuio11-2.fna.fbcdn.net/v/t39.30808-6/615413061_122154895790683985_1101301296625214554_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGILsRP3RaBrYeVSV7LsF3tLcrIpfuQJEstysil-5AkS-jXbV4yOcZyi814u5URm0r43Bv96-UHDwDvwesiNv4I&_nc_ohc=vkpPvLjcpIYQ7kNvwFPJm6b&_nc_oc=AdnGoA0vEwwa9sUzoQZPvNKaK7228xeBMz2dRUY02OJJdTy0L9MAiYhrgct4d38RhG0&_nc_zt=23&_nc_ht=scontent.fuio11-2.fna&_nc_gid=di7YFnP2EOvQ-jhIW8if2w&_nc_ss=8&oh=00_AfwQaRmV3jY_ASZHlqQl0O2IHJIoTXB-DB6bmc1hsnFtlQ&oe=69B57B86", whatsapp: "593967890945", lat: null, lng: null },
+                { id: 32, nombre: "Pizza Foodut Ambato", categoria: "comida", horario: "Lun-Dom 18:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/318312427_115437691401605_1711612410886690709_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHh8f9g1ePEvvViKgZGW2cSs1hgh-KqHMOzWGCH4qocw4zDdhs42SJsXNB_t0Z-JHvUTW0wrys5s0X2TwYLJ0Xv&_nc_ohc=_KbAMpL-N_MQ7kNvwEKagBU&_nc_oc=AdnG9-PGljp1w4BU7lf79umoxVduD8RewpPNlA6rf146r5zFmDYWUlazonzdlrOsFIg&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=2JIPT0OE7pWAjECkeUBkfg&_nc_ss=8&oh=00_Afw1s2MH9gTdJHj-6xTfSujJvQduCEIoHzS_eS0Y_zJ9lw&oe=69B6837A", whatsapp: "593960573649", lat: null, lng: null },
+                { id: 33, nombre: "Inari Sushi Rock", categoria: "comida", horario: "Lun-Dom 12:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/230964606_355669502846145_4449122290635581938_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEccyq5rw0qRVghg4COhyGcUF-d5051NE5QX53nTnU0TinLKP8Ne7Qi4VaALcdgZ_Z23SaCu1RalET8k0tqRvgy&_nc_ohc=qJnbRl75LBsQ7kNvwH6gEjh&_nc_oc=Adkso-6IFjkIk-fpFqVr7oNXo6SSqkCmO854yPl2NUkJCuw1vKhLT7pap4HQke920SE&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=-dnIGxE5YjP-5A3C5O2aLQ&_nc_ss=8&oh=00_AfyjyIUQmxIV5KJPIOBzMH1Bl19nCWraTPK7TQozNOLb6w&oe=69B69F1D", whatsapp: "593983534050", lat: null, lng: null },
+                { id: 34, nombre: "Kaffa", categoria: "comida", horario: "Lun-Dom 08:00-18:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/428500798_122095625918232893_6143742815996195632_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=100&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeHbS5PFsLoK--jp6CEaRy0A8s39UzOd9aDyzf1TM531oJDgd1Ah8v4geWzmvz4eg1IXuK7nmRMYDSULi_MvB387&_nc_ohc=F5lFouOawOcQ7kNvwHLxXk4&_nc_oc=AdlH8IE3euZChVWTaBMIhdkox_HXXFBJiK-MC7cJy6KPMteF-HK5xNhbZK6fktbO0uo&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=38B9NOLIx3iMReRO35EnCg&_nc_ss=8&oh=00_Afx2rQBgFqM8EVFsxohimdunp3MW0PU_P-vVKuwH4-uVag&oe=69B6A590", whatsapp: "593", lat: null, lng: null },
+                { id: 35, nombre: "KFC", categoria: "comida", horario: "Lun-Dom 08:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/410459039_751489760348331_8162467193416604834_n.png?_nc_cat=1&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEOb3yVsuAe8JshBMzs-d8kf9N2AzP2x-N_03YDM_bH48UeRo8khUy6yiKlLDp5K8oAygisseAXCKidWJSFCu5L&_nc_ohc=U-8v6TbU4EEQ7kNvwF6TE6w&_nc_oc=Adme6guIhnKTbUNF5GKMkyUK8M64UTeJHZApmKHaVMVauIO1HrXpnnTQpQI-JkF1pa4&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=-qpszuUw-Ek69JglaBmjwQ&_nc_ss=8&oh=00_AfyQTuhAEFW7SiJrrNs0o1TGS5ATC0UFWR7UEjNcr9cf6g&oe=69B6971F", whatsapp: "593988532532", lat: null, lng: null },
+                { id: 36, nombre: "King Pizza", categoria: "comida", horario: "Lun-Dom 18:00-22:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEigT0HuhLo_e0XjZWyTL0qDLiIzOF1r25hDQ8k69Wg_5bl3HCePwFfPLqHiuAxtbW77V6xfcCA5cgXdCRgJp6FjS0-d6oNhbXYcUZ6Ubd3EiTziJD6v99Fe-bIqR6CaLW1P-TIk_80rCo_lI7MV21j09Th5Dl3YKwaUuVZLUrc7RihoTvO6DXMYzVyCnlo/s1600/King%20Pizza.jpg", whatsapp: "593939832320", lat: -1.24424, lng: -78.63862 },
+                { id: 37, nombre: "La Cigarra Pizzeria", categoria: "comida", horario: "Lun-Dom 08:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/305844101_523823009642320_6454369542751057683_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEbsV5adXAMxag2pjknmz5evn8S2lOo8Ri-fxLaU6jxGHdqJ-3rLhsK4lwdae0J8wxIxHBOpwE_ifEtovNAONM_&_nc_ohc=0KtPAvhBDI4Q7kNvwEtnKAN&_nc_oc=AdkQZlQ4n_sIsHESDSso3GHTQFBcy68RrKCatyAAcrv5IV6_p42-WWMRGRvrXvdtDDA&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=9zQllv2hKmmKseVNATlehQ&_nc_ss=8&oh=00_AfzFaGc32sqTX5NvDQEJ4daOLFUagBQpavsNMKg6K6I8bg&oe=69B67F89", whatsapp: "593999830811", lat: null, lng: null },
+                { id: 38, nombre: "La Farine Pizzeria", categoria: "comida", horario: "Lun-Dom 17:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/348846164_610129747845678_7811806159864543923_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=101&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFwXNeEWWkw2IZVx1QloygClYrXbaQeea2VitdtpB55rcjqe6bH_QstobQQrxoyb_b9Ujjut0xmsdyGLVWjO44X&_nc_ohc=-gZIrvfolw4Q7kNvwHauO7-&_nc_oc=Adlzf3_hIkCv_DOdS9wSt_Dc6LSZbl8VCOuRey6atzM51oRAkppnjl-Q5ZZ7Ejs5MGI&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=0Mx_JOIMNyV1aJJtn5pVKA&_nc_ss=8&oh=00_AfyzMB7I92tmDJaKSwAu4T4FMERDAYYleTEQb2HG4RVskw&oe=69B6926F", whatsapp: "593959936940", lat: null, lng: null },
+                { id: 39, nombre: "La Fornace", categoria: "comida", horario: "Lun-Dom 10:00-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/277667427_653368365979283_1832641639075836305_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEcuJDybzOGBSZvU71cQDsg7W_oBShB7_Ltb-gFKEHv8qMjqRic_9t4RWCd2YJA67NOOctMVPwc4SY6XOzW63mr&_nc_ohc=vJ2PmR3CNo4Q7kNvwFmUt2E&_nc_oc=AdkC49j8sIOBuD1Dzj-A9HQwxvzPY3FJPGLqel1M34TJKb4U9yV1nG5C9nQV3xy0TWY&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=Ync5BwmY4P71iJAHOkZF9Q&_nc_ss=8&oh=00_AfyPs2QYTWOIZK7FGcTIJm2qtJVWcWx7fEDve9cWZw_Efg&oe=69B6937C", whatsapp: "593987495938", lat: null, lng: null },
+                { id: 40, nombre: "La Herencia", categoria: "comida", horario: "Lun-Dom 08:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/501122135_1260830166046610_8238649423072702476_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEDTtGw-qa0wfaG35Ee3gFJV5lWVuHOIkNXmVZW4c4iQ8ymM7whtg5QjtZhxXi8LXEjmIBJYUs7yaiFSXu557kg&_nc_ohc=mjXvaGAkbj0Q7kNvwGQebC2&_nc_oc=Admdu_LOoQtemrb8T6egIG5EYwembKkiODui4O2UbCr5SjN2q0dqk1eq3viRNs1Hp1Y&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=3Lu1FMlW3Ll5ehWZEwYl4A&_nc_ss=8&oh=00_AfzAWFXI7Rtpufb26eWdZitD5zYpm5vppSS4f0JhaDkLyQ&oe=69B68B6A", whatsapp: "593987143048", lat: null, lng: null },
+                { id: 41, nombre: "la VAK Pizzeria", categoria: "comida", horario: "Lun-Dom 15:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/584922504_2101716630655868_1687272450622262336_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEsEIvoSKU-wXJ5sWcJjA6wH7WwdIvTq0kftbB0i9OrSVvO8lvXjYulxXjursVGkGUVQo1pXUvijqOmb5bNvfuc&_nc_ohc=bbFgO5gLDlMQ7kNvwHMdNiK&_nc_oc=AdlwpAlzqbUl0MLLksMRoxRbuUdbD-ymgXrm5zlp_qSYGsMsz5tGx2ofQvvyoXOsb6I&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=NXgHS_NrXchq_qVtQG3Agw&_nc_ss=8&oh=00_Afxjq-PuChN1otJ10pF5kYvWIjrQPncA2Ny8cff1nYfsLg&oe=69B69E7B", whatsapp: "593968047347", lat: null, lng: null },
+                { id: 42, nombre: "Media Noche Restaurant", categoria: "comida", horario: "Lun-Dom 12:00-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/432308269_1045049373895550_5041258103113723017_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGtAjCjyXAkd3uZxSwB-lEsK09_f5nMKborT39_mcwpuiks1ycWllKaSHQPOH6yI2oj4exwxbjllDhqf5NaCNEt&_nc_ohc=40xqeVD_CIkQ7kNvwFJ25Yj&_nc_oc=AdlMKtdggTtqa6sfj3gYPr-MBkGoVldBHS6SjvRX8aVf-6PCUgcrKv7Pf9FIGldiBHs&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=fyvtScQXEWMeS7nQD9EzlA&_nc_ss=8&oh=00_AfyA_hDWgpse-IYq_kyddeBDQn9Si1W5q7f-1PSqstQkjg&oe=69B6A8F1", whatsapp: "593998728580", lat: null, lng: null },
+                { id: 43, nombre: "Mimo Parrilla Gourmet", categoria: "comida", horario: "Lun-Dom 08:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/430614403_934906938640069_6242857671498769087_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFRP7j7zw-QwEdBmTcySpoHJiFQEJeD_WUmIVAQl4P9ZZGY70Fb8MgHnT5xXB0xo7VkBSZqeXmpVLhm9sLN0P4M&_nc_ohc=S30eQklyaaMQ7kNvwHz7Ef5&_nc_oc=AdmYh9Puk_1TPguOtkYkNQlw7iPxi29z_YMEmkYgJQ-_Sc5qNEb-bDCcdeRFNdarbeM&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=7Y442hNgYjIcfV7OAbkSlQ&_nc_ss=8&oh=00_AfyxpR_L1FjDxS1SCDIW-6ntcCxh4HaYsaUyBTSNKivIhw&oe=69B67F87", whatsapp: "593999910098", lat: null, lng: null },
+                { id: 44, nombre: "MM Wings", categoria: "comida", horario: "Lun-Dom 12:00-22:30", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/509421335_723513883371017_3946129834075251463_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEH2XnxkkgI0edoqJZhRKfYF3TaQwRxYvoXdNpDBHFi-uP3p8loEeoxRIVKrZciatzsSgn1lKEDhW_ZmVhy_Ht2&_nc_ohc=NXEoiRr6QFoQ7kNvwFfxI5G&_nc_oc=AdlUFRdwjaLaogFMfxuzHcoXDeakOWbsiINsaTVTfHmyGxGQefSUSynZpxYx65RH1Do&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=qtqgjgMIin3NE45KgEp9xA&_nc_ss=8&oh=00_AfzxbGBTck4w7t_dg8Lsz0EF2NIm7Nu9kBAyaEx8QVlo4Q&oe=69B6A84A", whatsapp: "593992758284", lat: null, lng: null },
+                { id: 45, nombre: "Mr Parrilla", categoria: "comida", horario: "Lun-Dom 12:30-23:30", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/571811429_122097957867098779_4320252774682312722_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGlqFfiOaHLKP6Xsy0Y1AOXjap_MeJtvamNqn8x4m29qWFfAoKxvx20gAHtebGdDBWpyqKnTo6I0EIywAC6Lt_E&_nc_ohc=ujsQOc8M-boQ7kNvwHi1VAe&_nc_oc=AdnWTLawvspgLEg1pG8sw0xeatP_pqn-y_RNuYcxwT-aJCmQnFKUE6bp5J6obVIaTjc&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=iSCtTLytOSgup0YiRLT4gw&_nc_ss=8&oh=00_Afwg3VMPVIYQYzuvPO3xep_7xCPouOXYmQvb9rtJxnS0bg&oe=69B68C20", whatsapp: "593992770619", lat: null, lng: null },
+                { id: 46, nombre: "Panda Sushi Rolls", categoria: "comida", horario: "Lun-Dom 13:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/471822173_1697660434123553_4600069966388966580_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeE_s4lRVHL_cHnTMfTLWvEu4Hk1zulajcHgeTXO6VqNwfRb2AAmA213FiM8dKw9Vq9YcMF9lOb70ingVWmmJb5v&_nc_ohc=pUPxz988vNAQ7kNvwG1mond&_nc_oc=Adn0ioZSwKJ_cEKUPfkFVbvHBgfUCbNB7s7PME6MIl2i1KYH9usWRaJA1z2nhwaIxjg&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=q-rGd5lCeU3coxuEXT4hoA&_nc_ss=8&oh=00_AfzGdjtzZb2SGZBKy8LVWbnPufJYpvr8Ke1tLSQKxM1OIw&oe=69B67FF5", whatsapp: "593996913797", lat: null, lng: null },
+                { id: 47, nombre: "Pizza House", categoria: "comida", horario: "Lun-Dom 13:00-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/613107534_1502370345230494_3582767466053910831_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeExE-pVdJH08NV2i3D7e-qkQwDKh8Pd0ClDAMqHw93QKT4TUoDcybJ07Xhio6PAnZV-wISnJm2hSIrmlr0Ta_Dz&_nc_ohc=KgGDZoi_PkIQ7kNvwHxaFPV&_nc_oc=AdkvMSF57FLjqr65T9wgdxbJTCZ8fRZBCaUPnTxroxDOPQPCYDTPWs8Q-Y1jvQBcZAI&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=ms8GV8NLv3JdOC2YjeWf6g&_nc_ss=8&oh=00_AfyG_qGp2p_OU_p0D14zjv1tPOptBcH86PgOnNUsMXgABg&oe=69B67AA1", whatsapp: "593963032249", lat: null, lng: null },
+                { id: 48, nombre: "Pizzeria Giorginos", categoria: "comida", horario: "Lun-Dom 15:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t1.6435-9/201091210_4077515742363081_5597865697688300592_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=53a332&_nc_eui2=AeHrDR2izwpwHdGI8sOjRhV9AYssAK8PqMgBiywArw-oyIPpnX8P9ZYLm_Z2GHDGWVJkgrhzR4WI6ectEoAAx2zt&_nc_ohc=vvVX1NB7LKYQ7kNvwHIe1td&_nc_oc=AdltzhzDd29O7yb51xr8Lc_h0h0wito5j497kUPTWqnfaqLzoJ1CZD4TG10M1ZkR0_c&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=E8fN4XQJ3pEXWDdo8KD-EA&_nc_ss=8&oh=00_AfyrZTnQYdxU0m-KMr9fTRnT95ErCRx7VOwxuxoUOpJZKw&oe=69D83942", whatsapp: "593998978231", lat: null, lng: null },
+                { id: 49, nombre: "Play Wings", categoria: "comida", horario: "Lun-Dom 16:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/624531070_122094940761244215_4327728427822569769_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeG26PoN9JGccsI0z73RWOm451jErANraLLnWMSsA2tospBdTf14IbdDw9lODqMumUWQT59YtZGtDasFJavQF-e2&_nc_ohc=5CN7v5i1YCQQ7kNvwFO4HHP&_nc_oc=Adm-riXAlZqCwmjiHyRtqEUUHzlvwa2Yt_6Bc6MjJiFNDirFMXca78wqyQltCtfcxQY&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=i9LyRog3SFFy87TSNpE1OA&_nc_ss=8&oh=00_Afxi0j3e7r3ALMnT0HWnfrGmpHOXcKLD8uFRnWd2iyp0KQ&oe=69B6C5B4", whatsapp: "593987166040", lat: null, lng: null },
+                { id: 50, nombre: "Pollo Alcalá", categoria: "comida", horario: "Lun-Dom 11:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/401600529_7555098721169333_5879996275937099232_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeF1cu2J3ewl-zjqS4qxmNyV6bOXpFBzRVPps5ekUHNFU1WHTTcGzW2j-_X-liQvkFfI4RYKv6PokUNedCCikr4T&_nc_ohc=7o6IecM9f7EQ7kNvwHQFd_Z&_nc_oc=AdmOtBgWp5RnTfFbzeaaRDSerFRKhjhmpXFbbSf41tN14dn7VxJRV7xbuFc9w1eJjDY&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=B2OBUuvN-AjFIdm2X7-57w&_nc_ss=8&oh=00_AfyY3fmirB13Sa7azRNi6avUAPFSZagW2wPZU3DAp6SpPA&oe=69B6B43D", whatsapp: "593992044617", lat: null, lng: null },
+                { id: 51, nombre: "Pollo Campero", categoria: "comida", horario: "Lun-Dom 08:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/438129117_456512996749133_9218201782816859188_n.jpg?stp=dst-jpg_s160x160_tt6&_nc_cat=1&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeErv256n9_P9k7AAI-IUpgcIT1ySbTh-UAhPXJJtOH5QA2kNq6SBpizOwnoTv1DdryjP4A87o-iayM-gh4KgJ0P&_nc_ohc=Y46MfH_TuxoQ7kNvwFnsNqW&_nc_oc=Adl5AbkjyE63BL3wAXKT__mdgVDeY3Km9ZyREtA8Aqqrl9Nlawav_Za2GBHQgmmE45E&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=0oY6NNUDA4qGtlV6rGBmKQ&_nc_ss=8&oh=00_Afyqtbt7_Sm12uZCsdxrSAX75Uxa64LblmyrLeR2zVBR2g&oe=69B6C245", whatsapp: "593", lat: null, lng: null },
+                { id: 52, nombre: "Pollo Fenix", categoria: "comida", horario: "Lun-Dom 11:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/335582304_274098598277184_6200930550957858682_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=103&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeF5jPBgdFKl6bItAi3HyJapyDwiutAHqzPIPCK60AerM7nF0iC1oDql8R12wcXK3wA3l0528FhdH8GJKaPlec9i&_nc_ohc=4ZNVtQTGgfQQ7kNvwEmpC0S&_nc_oc=AdnXXJCMiLT37TmmtmjkKnIDLK6B7QopMfj2xqybbQwyhxCS5RYCqMhQxByek5Js9HE&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=oFL6WBKDS5kFtN_lwz2_uA&_nc_ss=8&oh=00_Afz6qJVbzD5Wi62aVnfWbTPpMI5xgM-4zVxBrx7CZahgCg&oe=69B6C2D2", whatsapp: "593997696774", lat: null, lng: null },
+                { id: 53, nombre: "Los Pescados de la Joya", categoria: "comida", horario: "Lun-Dom 17:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/589432185_1427150886079309_5350716386222423459_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGkZTPUds-DGBJ-qDYebHxAFOljt6dXkuoU6WO3p1eS6ofi_VMQr8mDel1tKnrHfyjLKc72wv3P9Lc21XnBE9TT&_nc_ohc=2GppFtz0gmgQ7kNvwFj8vsZ&_nc_oc=AdmarnAK4f7U9VcSKWw9xm-0p9Cv6Kb7yL_9SCuDC5ePTQ2oaG3ecW0-jtvSD37wsLA&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=VSUAcSJmOh5MzljQQAS4fw&_nc_ss=8&oh=00_Afxgd3PIrS-t7BdEV4mYNTQYgpSLm8g2QyEjbN3K0fp-kQ&oe=69B6C886", whatsapp: "593998056666", lat: null, lng: null },
+                { id: 54, nombre: "Potato Tornado", categoria: "comida", horario: "Lun-Dom 15:00-22:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiRQVXGH8JS_J4A3OQCg-hgHlwKXU3-_NmU2I4hoaFF5jf5NFVOHBk-b85m16UTGqWOyKiQPYppcwJ50ATwMPas4C8bpxWC781nPmc137H3_YJ3fBuFURCIf8q7ajUwHpjMlZRUh6Va9HoaSL4wylgmcBDDvhHjWi5UId5Aua2oGnCz7JOPaIG7AGXKv6M/s320/Potato%20Tornado.jpg", whatsapp: "593997652839", lat: -1.240403, lng: -78.630426 }, 
+                { id: 55, nombre: "Que Monada Bolones", categoria: "comida", horario: "Lun-Dom 08:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/527676707_1292928652840368_3570600717454836506_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=105&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFpXI-rNOfwvAwOritCcT0yiv8-pKaiApKK_z6kpqICkqYbaGR2FrTjzaJVhUbt3KONerDk6UgBiltrqPF4sT2A&_nc_ohc=AbJ4SBb_olMQ7kNvwHRITX8&_nc_oc=Admfye215WnXr_4ZlcZZvKCr29uBpCKt50vFtbSF1r9Q5PRJQZ26frdfeHc1kdKZkx4&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=x75GY-V1SFux3ZMYDHeMPQ&_nc_ss=8&oh=00_Afx3xh8Q6-1ER7iCveiyS5Tm6oNaAUNvu7xgLfjhhuRbWg&oe=69B6BD7B", whatsapp: "593963772912", lat: null, lng: null },
+                { id: 56, nombre: "Roll and Bowl", categoria: "comida", horario: "Lun-Dom 13:00-22:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgfnZXPMv24de0LS9h3ZwgMxmK2dbXS4xov-9BBBkSRP9cTjeH3b9pEQCGT3nVpc4ZlSN_psBkx5IwRdwK9QCKLQtU0CY9n1eCu4-Nnx_7KE9iilCUC2PIqfcjr4m3vP7YZMdKBiKzQrviBMm12vqwckhu8hkvSO_cbHsXyQbrgLCB0VhkqYGOD8qmsK8U/s960/Roll%20and%20Bowl.jpg", whatsapp: "593995192441", lat: -1.25448, lng: -78.62481 },
+                { id: 57, nombre: "Saiyajin Sushi Rolls", categoria: "comida", horario: "Lun-Dom 12:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/417796962_122150945402033141_3936430164943397854_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGsKwxUGmh-fHM_NWUigk7ZsIH_p_5wROWwgf-n_nBE5bjFlleWfTXnyKb81DmO89IndFoN2PJMJyNoX42YupLk&_nc_ohc=0mgQH_OaG88Q7kNvwHR1m-z&_nc_oc=Adm8-UW1I3vjgnpnXHGpSIawH0ILby0to3KWSa4RTnxTSVYt2Gr-31jFhZ5_OAJURVw&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=MM5gqGUvTktQHsEslbjv3g&_nc_ss=8&oh=00_Afz0a53X_ESbRaFVt5jwlkXSuGzXIwPr7RFaPNWIgXRcVw&oe=69B6C74C", whatsapp: "593984579590", lat: null, lng: null },
+                { id: 58, nombre: "Salchipapas en Balde", categoria: "comida", horario: "Lun-Dom 16:00-23:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/266552954_436650061439128_7818364273346849616_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=103&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFs9rxBWINNWYMQDu10HJSEfz8CNBGXtet_PwI0EZe16wlDUKOdCbHquFra9T94w-fNfvHfKLDbcCxOhzY4ykoX&_nc_ohc=BGzD7NopAg4Q7kNvwFgR-GU&_nc_oc=Adlc3ff7x-BGqpQbztErP72nCTCE-9f7vVhxr8Ob_uctwywTkkPi6FQVH0iRTJRoaqE&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=-H-MysKqYcCzW59jVmicAg&_nc_ss=8&oh=00_AfyUGuMULR1Q6bDgNg7T-3gz5KOV2MyR5Ks92MZcCAmbyw&oe=69B6C0AD", whatsapp: "593986567320", lat: null, lng: null },
+                { id: 59, nombre: "Takumi EC", categoria: "comida", horario: "Lun-Dom 12:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/558985553_122106302187036667_3170661281404566456_n.jpg?stp=c0.178.1080.1080a_dst-jpg_s200x200_tt6&_nc_cat=110&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeGhQjd9E4VSbV-0iVMpOrfH9nRJYI81SB72dElgjzVIHqJdz90BRubiaCbRTltGghE6EWa5_F1hx25YBIx2CMUo&_nc_ohc=W2zcDRZyuBwQ7kNvwFogqYf&_nc_oc=AdlufSg0NZm3z31CH0G0JL8WtcyVbeAXRHaSfCFeUVlmRfgUfk-q4LpzkBBnLSw_y6s&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=kQ7hK157DUh9gEi7i-IijA&_nc_ss=8&oh=00_Afyug8kNM85ps6wTJoVrFWKRN3ORaImGPUucdsiw78wNWw&oe=69B6B7B1", whatsapp: "593984113454", lat: null, lng: null },
+                { id: 60, nombre: "Tokio Fast", categoria: "comida", horario: "Lun-Dom 11:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/638742168_122094618549280545_5553277198973546008_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEHoCSRYsbfL3TnQHGJ1utdxqgxG1cv1IzGqDEbVy_UjOVvaklZnPuwukO-Y_3rKsVij-T1WM80JbO_BFdz09ms&_nc_ohc=IPa9gUmDsGYQ7kNvwEblPOS&_nc_oc=Adn-MqVB9GrVb6W6UXoELb-ZetKBQ6cvI5-lKdJ0r3OKuzt55arWAb_rFGyUt-F-iWg&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=qxuTpW2lrfJeFSIT7n1-0w&_nc_ss=8&oh=00_AfyjltdMe8g9Tm6DiD8wmPn-B1493DiK4_8NNxkEK1kVTQ&oe=69B6D0D6", whatsapp: "59358622905", lat: null, lng: null },
+                { id: 61, nombre: "Mundo Cake", categoria: "comida", horario: "Lun-Dom 08:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/599733361_4390342651230235_3669482046102545266_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeH0Wkrv616CNqxZ-Q7ArTgaSoaMmJb5IL5KhoyYlvkgvkOYp-vOWVA7Q2pjCXUWxhnxXfGQcOaPLodItdKC1Xuj&_nc_ohc=puNTgZgc_Q0Q7kNvwFquMkS&_nc_oc=AdmzLm2mrraJzTjr2RHIxbYVX4erTxRQBzgsW5s_R2l08NsMR_bcAYYb3jaxrK-fa3g&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=U_jepstyCQ9jqkGN_fHbTQ&_nc_ss=8&oh=00_AfzZ-u1TrPK78OSAuAT3L6M5Q2JC5lrs-lMtKOzFp0JqqA&oe=69B6AA74", whatsapp: "593998199966", lat: null, lng: null },
+                { id: 62, nombre: "TUS Alitas Ambato", categoria: "comida", horario: "Lun-Dom 17:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/447976036_858635926286650_5089736033507553085_n.jpg?_nc_cat=106&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFGCz9NeWrOZeNr4jh-XjkkfDxBJOvAFXl8PEEk68AVeWmdEi0Ur4LCdFH-ks734rAlppL1OyQkYRD9m_4Istt0&_nc_ohc=6JFr08PYGJ4Q7kNvwF8_L1U&_nc_oc=Adm7-IPxrgf4MYpLk-6X4xYevnc31kdL4DR-ouQNRcM9ySNYhR8LNf4VAIpxztaVsJI&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=R2C2B5qgFC_pm32x7wCkBA&_nc_ss=8&oh=00_AfzPLr5f-RXqT04JJ5PmII1jGX53xWNwd5MyCdvV7J-X-g&oe=69B6AAFB", whatsapp: "593981191017", lat: null, lng: null },
+                { id: 63, nombre: "Wings Garden", categoria: "comida", horario: "Lun-Dom 15:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/606071490_852249674238547_3832507362549033867_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHxMsY1YsVUKmoh6HOfbuQpO7KAPOs_ERg7soA86z8RGPbBVZkmypB_oFz673n-Mo81WQ04NW6SewQTQfj_i4hM&_nc_ohc=M911JxzUqpMQ7kNvwHtXN9s&_nc_oc=Adlpf6z_5F06jP-dhrNk_sMQrFFKCu8ohIToEtIoThO5hcdKFAwIowDbj9Bk3aII3XI&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=lJ8VylEHJe0ZFiRjcTMOXA&_nc_ss=8&oh=00_Afx1bCBzgKe1xI_QMPBTvvtuHvK8HAaVrK1mV6l_Rm3Gyg&oe=69B6ADA7", whatsapp: "593998098912", lat: null, lng: null },
+                { id: 64, nombre: "Your Burger Fast Food", categoria: "comida", horario: "Lun-Dom 17:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/641021357_122148482054979538_5341626030134583967_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=102&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeELs9RvCxXUep6WW1tP_iJcCho-nsJqcVMKGj6ewmpxU3BzgZOPOGGFGttftlJ8BQ3bmD6X49QRuiEqgQEMD9Uq&_nc_ohc=TQO7Be4jl_0Q7kNvwFgG0CZ&_nc_oc=AdmHdaW2Tji77pb39zVnEFsSuv_uuLlImgo2HODytHMGtIBiyDJI10eXWOm2JeVk1MQ&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=TwouVLoxWEQpeGO8O-insw&_nc_ss=8&oh=00_AfxOYMIoTfcu0s_Mtalt_NOtjJdm_dk7TX7q_Jp-zMMCNw&oe=69B6A101", whatsapp: "593998048666", lat: null, lng: null },
+                { id: 65, nombre: "El Chiflido", categoria: "comida", horario: "Lun-Dom 15:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/341269133_778505203630183_7609429654628130241_n.png?stp=c79.0.1364.1364a_dst-png_s160x160&_nc_cat=100&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeEnP679mZCj_XlY8UuCEO07WSfyESqSrY5ZJ_IRKpKtjtxRmpnJkR1l8OdHRXwqo-scUANC_pjO67EyM5zeF-wM&_nc_ohc=9ys_S1-jiN8Q7kNvwGVAd1l&_nc_oc=AdnlwAPeW21xhVm3qHGm-CuMt9KpnWp5qBGJfmPRAkkJOXHkfxqtYj31Ed2yvNOWTN0&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=QhdNouCPio17r_AwZP_zcA&_nc_ss=8&oh=00_Afwv7zYPmW_SncZP7Jkwv8YD5onmORqhbg3Eo4G4tp7V_Q&oe=69B6AB43", whatsapp: "593979342895", lat: null, lng: null },
                 
                 // ==================== SUPERMERCADOS ====================
-                { id: 301, nombre: "Mi Comisariato", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/457306695_537123862029395_1879722413412660847_n.jpg?stp=dst-jpg_p160x160_tt6&_nc_cat=1&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeHm6jRqej8coTDOXu3t4WpkLfhWWhb9UNAt-FZaFv1Q0KzuwDGR9ukZbSGEopGOoc0i4RtawK3IAHWMd53sFvgr&_nc_ohc=o1IkbA-MVjoQ7kNvwHt0s6H&_nc_oc=AdmdUkBWpjY06xIKpxwCVM076aSXBwoaHrIHA9iThtqxK8VkeA6ftSKJbzkJxvqtvuw&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=iBowEEK7Hrx-C84sJlBxeQ&_nc_ss=8&oh=00_AfygI4lpEQtrr1m4L6nsFr0R0POP8_FJbtRsIwANXP0QAQ&oe=69B41C64", whatsapp: "593985562172" },
-                { id: 302, nombre: "Supermaxi", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/570846819_1229126009240299_9197808413312375864_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEhO8qIOC1DTxF8U12CJPWtBU3e2sM1EhMFTd7awzUSE7bh70aO0fT1pJqwgBIVKGnaWBYLBL-JW_SgTn9AQWV7&_nc_ohc=7fvuJDqO25MQ7kNvwHkvfR2&_nc_oc=AdnuPwWY5MN7SNt-DjJqLjcsqkhvzxybkiaZH1EvsG7TRjpZX3ehVY0J7LxAGKyG2ts&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=c88Y_1BFEnFKyPazqnv_1Q&_nc_ss=8&oh=00_AfybPit2qbImp0nNdGhM_z3Gmy-_zPNrNCid06chhtwh0Q&oe=69B67910", whatsapp: "593985562172" },
-                { id: 304, nombre: "Gran Akí", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/290130231_5143906062313435_4415335187114780834_n.jpg?_nc_cat=100&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeF26USOfnbNMAbL7k1s_HeZ52KUFXjlN33nYpQVeOU3fS1sD7oul7T1Sk_HkAKo42tRU8TrSxsuNbxYlBSzBCpR&_nc_ohc=8lCaWKdFBCsQ7kNvwHiN_uH&_nc_oc=AdngwCpUngMtEmet2CYkVz8VxpibtyPhIAkJ3Kyy2E1CcRB078UpMrOaAsMfPZfhbK4&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=YYo81QsGzHxUVpeEvthanw&_nc_ss=8&oh=00_Afx_XSRKpsQaOKpoJrWfPPs-NIgXGmHPQItDzT5d3GTKKA&oe=69B4215E", whatsapp: "593985562172" },
-                { id: 305, nombre: "Tía", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/515358181_1140026501506869_7810775067598000396_n.jpg?stp=c85.0.1877.1877a_dst-jpg_s160x160_tt6&_nc_cat=1&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeEQ5SitvBJLP4J1-fhZjL_J509ukfzMKkHnT26R_MwqQe530AN80fWEGfUbXkmIuSdBTheoFEmF8Ycec6q7-Eby&_nc_ohc=iG4pyxLHYeYQ7kNvwFcfZge&_nc_oc=Adk3LJJrnXkcnQ0ssAA1ez7pocmaRbRumVDprGB6lWAimlMX7otImSt8qbK8RQ4SsWA&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=gKXarLKHmQ2AUa4NSpaaMQ&_nc_ss=8&oh=00_AfzOytHJHj-cTsXgnxh2ab9wlBpoQ2E90nLh8x-HYyP2Wg&oe=69B419B9", whatsapp: "593985562172" },
-                { id: 306, nombre: "Tuti", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/456876373_122190445472017962_5842124583331949689_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFr25B_Ku-l3EVVStNDjwqmrvUWdmXtVSCu9RZ2Ze1VIL4hX6lKxY2Nh438AuGYcyZ-z-vf2bYq22nFPHktdGsE&_nc_ohc=8cNYpwYjMZIQ7kNvwF93SWl&_nc_oc=Adl8Wv1bxRBtYJlfBT_uaf94iwvng9B2ZeVx9bPqYOjr3qD5wgFShiVz-19T2OFVKDw&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=UQ9HCGVxVnB-1W9wZXafPQ&_nc_ss=8&oh=00_Afzy-3g1iJycQ1HC4T-8BENYkhw3MpOXq95F6Pn82sycCw&oe=69B41526", whatsapp: "593985562172" },
+                { id: 301, nombre: "Mi Comisariato", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgl_7_L0rWcAATPfxK2k4Dkadh62b4PnFLuidsO7zjG2Fkvf_YxJKXTymtJgbcynhsP1jBBXJ4w5-2revq1UTdng8DIX2ccfxyRiUjj9qRNZRjCxWzlrJ55VCEFUy91ZIQtAYujPzW1o_dDvu99l4JrZQqxNJBCENdr5PlPluY5noGa0prX_-VON7rwX0c/s320/Mi%20Comisariato.jpg", whatsapp: "593985562172", lat: null, lng: null },
+                { id: 302, nombre: "Supermaxi", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgrAajYoanZAjSc-1TLmchAoQz3bEBF2s50TaRHi8ufuSH8yNWBR25czDhjW4g9GCUFG32RUR7h9KyQR3NqSzVCXZcrUyxKD3Rm3dIEefQQqfL9yK5Mnwm43c4fBXYnVo8tpcVYz_YDF8Y7hTl16xgL9kqdzm06FPKp3jQ5iSMPfXkGTZgTRgTydl1czoA/s320/Supermaxi.jpg", whatsapp: "593985562172", lat: null, lng: null },
+                { id: 304, nombre: "Gran Akí", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgUweLYJLVqvGYiFKfqXT2V81Sq16nxYsEVvmW-l1GC1fZuuO9wNSdQe3TqkiLDZSJHrm56YjOuFbRxdacXnpdD59KoPqkKyM8SDcWruXFgsmCCVd8TxlBx5MaSbPGXwGKICn5xaFoLz3P3GIPTnal_mzdvhlAfUHDAbsH2sljDSz04SyEZObzoHx2c3_s/s1600/AKI.jpg", whatsapp: "593985562172", lat: null, lng: null },
+                { id: 305, nombre: "Tía", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiqHw0DS-hIVfH7KKjk2Inj5J6Y18938Cl2sR-JKBrwhxOXnCLIu0JK9ySECw15SdRQzYSj2nVMSqwjCl_oFQDaEC4wL_CLSJkr-V8D18pfquYXThlwkecKYQSiZLvkpQ1LIZuVagO0Fqe1NQJxB5mxzVagZ0P5HnpigFGHONTLoiHZpH3GGUwisiOiG_s/s320/TIA.jpg", whatsapp: "593985562172", lat: null, lng: null },
+                { id: 306, nombre: "Tuti", categoria: "supermercado", horario: "Lun-Dom 9:00-21:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgT6VBrDZ6lcYAIFWYwaVJtnAOQT7sZvKlhO6ubidkikdi6WWbv1IdlJcUN4F4mlRB7XwKoR1vU8hbyqErr1l12gyoSLFJ8bBCwaOeHYIvPTmZrHym-NzFnBCyVNdbcfFcyU7gR0eZs-dj1xtJZ0IQXe4VoXboQJXeO8LWtohychAzvdqGsqtZQtoaxUXg/s320/TUTI.jpg", whatsapp: "593985562172", lat: null, lng: null },
 
                 // ==================== FARMACIAS ====================
-                { id: 350, nombre: "Farmacias Santa Martha", categoria: "farmacia", horario: "24 horas", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/240826552_6687502394608447_3702621369534526910_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEntz8Z-NdS9LaKG1Vc7PLAmuaIgl8ZWF2a5oiCXxlYXXNIhmxzlTUIet85i9oN6R4N79w7iL3s9HoFmoJXbTYH&_nc_ohc=gADip8iR3_kQ7kNvwF3goIr&_nc_oc=AdlKBPsxGWHvxldXh0cBMvLFMaBpB67eBOKwWr3KWWdwpaKfQQxP7df9OgYcVK_7E2Q&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=oAo0057Bkm4jxBfAOsosOQ&_nc_ss=8&oh=00_Afz1ilAJEOBau1oF33EKCKOFuiH4yvYFso4MUP4VQ2NNog&oe=69B41233", whatsapp: "593" },
-                { id: 351, nombre: "Farmacias Napoles", categoria: "farmacia", horario: "24 horas", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/348243530_258105006762620_8410729308657500174_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=103&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeG51IYHmWS0yDZRc7scLLkkc6-hkcRMVjhzr6GRxExWOHB7u-6Y2TINaykkyNkT_jrS7_55Orqk07KAcTe0rUuC&_nc_ohc=UP5QmCjvz3IQ7kNvwFE1qTe&_nc_oc=Adn8w2g-tohxfvmYrvTu2hTrd58iLxB2MA-XroAqxZC67lR4tZNXX_HCm4qbCJHulLc&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=XcvqJcxZGV4o8ouWHGY2_A&_nc_ss=8&oh=00_Afwia_g1iyPlYRkEcbxlKvNz09gYLdMsIrSvFG0UXUQKfg&oe=69B4293F", whatsapp: "593964201454" },        
+                { id: 350, nombre: "Farmacias Santa Martha", categoria: "farmacia", horario: "24 horas", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgzcaUnqxug0Lti71l8BE4UimSIxegzq-vBGqK86D_B3HfHJacQRXo32JB8JRVY-tvJctAQ-LkboybdCAW1s8TUzl7Ci7lquKmXFpGkv1z5XOarIaaVLjWJKQ2rLRWR0u1f7RXqtKtLcltn2N2tkDsuW-cPpQzCtDBcR2zy366YksB3CS1hyNCn8wQib1E/s320/Farmacias%20Santa%20Martha.jpg", whatsapp: "593", lat: null, lng: null },
+                { id: 351, nombre: "Farmacias Napoles", categoria: "farmacia", horario: "24 horas", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhpy5pzWVo1wRazxpOxRm0bCaAVlFMrLLg7YmqxC6wbdMtOwiQNjw6KFnBKF8u_3pvRK81N96rGySdG8G4O-rCpJuTYfPvAiClhmdkHoudOlJ-_byX_s7AO_dKzObkYs_xVjLNP3IvQpMiBWqa3q3RAenohyWxnzIDzDIZ-2MLHY-WbWoF82JavJZxpceM/s1600/Farmacias%20Napoles.jpg", whatsapp: "593964201454", lat: null, lng: null },        
 
                 // ==================== LICORERÍAS ====================
-                { id: 400, nombre: "Licores POKER Ambato", categoria: "licores", horario: "Lun-Dom 10:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/299111944_531323745460534_3987409334723597304_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHXxxCZ32p09JSIuSPE78rn2ukBSiyA2DHa6QFKLIDYMcKCp_kw8s70u2UOqjLSmtSg9qLyZQXgKq5m_JXzJnib&_nc_ohc=DXzyrrXs1bAQ7kNvwHi7Anz&_nc_oc=Adm41xmfZWg9q9n4dY2PuhN11B9Tr9hp7XUoSWkudQlG9KODxROxL3-VwYuAQf3oWW4&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=lnVLzOXt2mppZIqtKHGjpg&_nc_ss=8&oh=00_AfxAfDarl-O0hsDsW1GuPK9f3E_yyYbRcE19WS3-aHs4kQ&oe=69B68677", whatsapp: "593987504266" },
-                { id: 401, nombre: "Licores del Ecuador S.A.S", categoria: "licores", horario: "Lun-Dom 9:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/415050021_867415662059073_1097794821594003216_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFJK3UOKKIfkzQDm5My53FCNMqJ8Ris9cs0yonxGKz1y0fe_Exqerz3yY1REE8dkMFo_dUl13pfEs9VCnNnK_ZS&_nc_ohc=11MM81Dvn-4Q7kNvwEeTRHR&_nc_oc=AdlPsSfye544lLKQ5ISL45ngAVP4g33ceOJzpvPcqouXoH6Q0iM-hZtySZAoNEbH5ZE&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=s89GpJZLoAMN27lC0venuw&_nc_ss=8&oh=00_Afz7ik99FXeckWH-t08-6eXIaQ1bZbPcPRH0dhNel2LBtA&oe=69B68BCA", whatsapp: "593979258979" },
-                { id: 402, nombre: "La Tasca Licores Ambato", categoria: "licores", horario: "Lun-Dom 00:00-00:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/278078986_387201076746662_2698007112526186504_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGbrCmlzh4Y0xrCmO-we19s9PpviKLCpgX0-m-IosKmBe9sbUNFP4zQT7f1f6WqHCPLT5KomHxu601ROTpNPBYT&_nc_ohc=q4lWvf7kqEQQ7kNvwEgB5uk&_nc_oc=Adm-iTEgwdpux-YMzeEDLyWU6E3kF0eY2vK-ZONL4nM38IF6C2R09QFHbyfjr7p7hWU&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=tN_t2O8CiBBPfAWt-fGJ_g&_nc_ss=8&oh=00_AfwqG21R_x_YnPjzYxAyjq2vP__Cn4rQFbM1quZuRsjsHQ&oe=69B67D56", whatsapp: "593999908053" },
+                { id: 400, nombre: "Licores POKER Ambato", categoria: "licores", horario: "Lun-Dom 10:00-22:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/299111944_531323745460534_3987409334723597304_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeHXxxCZ32p09JSIuSPE78rn2ukBSiyA2DHa6QFKLIDYMcKCp_kw8s70u2UOqjLSmtSg9qLyZQXgKq5m_JXzJnib&_nc_ohc=DXzyrrXs1bAQ7kNvwHi7Anz&_nc_oc=Adm41xmfZWg9q9n4dY2PuhN11B9Tr9hp7XUoSWkudQlG9KODxROxL3-VwYuAQf3oWW4&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=lnVLzOXt2mppZIqtKHGjpg&_nc_ss=8&oh=00_AfxAfDarl-O0hsDsW1GuPK9f3E_yyYbRcE19WS3-aHs4kQ&oe=69B68677", whatsapp: "593987504266", lat: null, lng: null },
+                { id: 401, nombre: "Licores del Ecuador S.A.S", categoria: "licores", horario: "Lun-Dom 9:00-20:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/415050021_867415662059073_1097794821594003216_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeFJK3UOKKIfkzQDm5My53FCNMqJ8Ris9cs0yonxGKz1y0fe_Exqerz3yY1REE8dkMFo_dUl13pfEs9VCnNnK_ZS&_nc_ohc=11MM81Dvn-4Q7kNvwEeTRHR&_nc_oc=AdlPsSfye544lLKQ5ISL45ngAVP4g33ceOJzpvPcqouXoH6Q0iM-hZtySZAoNEbH5ZE&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=s89GpJZLoAMN27lC0venuw&_nc_ss=8&oh=00_Afz7ik99FXeckWH-t08-6eXIaQ1bZbPcPRH0dhNel2LBtA&oe=69B68BCA", whatsapp: "593979258979", lat: null, lng: null },
+                { id: 402, nombre: "La Tasca Licores Ambato", categoria: "licores", horario: "Lun-Dom 00:00-00:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-6/278078986_387201076746662_2698007112526186504_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeGbrCmlzh4Y0xrCmO-we19s9PpviKLCpgX0-m-IosKmBe9sbUNFP4zQT7f1f6WqHCPLT5KomHxu601ROTpNPBYT&_nc_ohc=q4lWvf7kqEQQ7kNvwEgB5uk&_nc_oc=Adm-iTEgwdpux-YMzeEDLyWU6E3kF0eY2vK-ZONL4nM38IF6C2R09QFHbyfjr7p7hWU&_nc_zt=23&_nc_ht=scontent.fuio19-1.fna&_nc_gid=tN_t2O8CiBBPfAWt-fGJ_g&_nc_ss=8&oh=00_AfwqG21R_x_YnPjzYxAyjq2vP__Cn4rQFbM1quZuRsjsHQ&oe=69B67D56", whatsapp: "593999908053", lat: null, lng: null },
 
                 // ==================== FLORISTERÍAS ====================
-                { id: 450, nombre: "Deluxe Flower", categoria: "floristeria", horario: "Lun-Dom 8:00-17:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/343061243_230124802955710_6231036976151676677_n.jpg?stp=dst-jpg_s200x200_tt6&_nc_cat=107&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeFiJvk0KmQZFqLseikrkxFJxwrhin7uVJjHCuGKfu5UmNtJURnJCVni_Mx5G3g2dtkqZfx9I4Yi7m3pMUAOcbLM&_nc_ohc=vnaOvmTrzI8Q7kNvwFDCxy6&_nc_oc=AdnO-r5s-S0RHFoAlohIwOUcluIEBaX8ILaNeRuSH2kalsL_Em2vm4s_JwT5isuO3Mw&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=UA8EkRsxADUaWPxBssPOZg&_nc_ss=8&oh=00_Afxrkb-jEG0IaVE2mKbRngMeUAekEmya_Ev28iIIIMPL-A&oe=69B419AF", whatsapp: "593963171852" },
-                { id: 451, nombre: "Flower", categoria: "floristeria", horario: "Lun-Dom 8:00-17:00", imagen: "https://scontent.fuio19-1.fna.fbcdn.net/v/t39.30808-1/417222679_274478712320273_815891181823719382_n.jpg?stp=c0.0.720.720a_dst-jpg_s200x200_tt6&_nc_cat=100&ccb=1-7&_nc_sid=2d3e12&_nc_eui2=AeEwGodWCJGVm9CdPbS0fTMhQhUe35OlrdZCFR7fk6Wt1r4lM4cUP0RPth24InAenhqSnJg_Aktqp8dlVsjBSY4D&_nc_ohc=t3b4Yu-WR4oQ7kNvwGno48b&_nc_oc=AdlTuf54Ros_2Tfu6JyhME9PckCZKqcv90wbD9CAXo0emdfQLJEHESeL6SsNdcQhkf4&_nc_zt=24&_nc_ht=scontent.fuio19-1.fna&_nc_gid=Hzn0qM2Zs83Bm6gr-B3Svg&_nc_ss=8&oh=00_Afxn1WTEl0RN6MxC_dlILVNWIne_DyEvlUnjwhEMxsRd6g&oe=69B43E23", whatsapp: "593999804289" },
+                { id: 450, nombre: "Deluxe Flower", categoria: "floristeria", horario: "Lun-Dom 8:00-17:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiSzX15JQaBk5fMmYqXhqF4Fq8vLwt5853kNpPMUyKINV_T2HotcIvFNfjWyrVS30S6_WfozK3PVDgpmqEyVry7Ad13yRebLCbBVBY12eIQchOPBEe1fvEKgVamLI809_6ogH4pyF3z1I21aANT0oRlOUjQeHDhMdMXZnXkxAcvsazyvNWP7QDCL7N9Ufc/s1600/Deluxe%20Flower.jpg", whatsapp: "593963171852", lat: -1.23383, lng: -78.62130 },
+                { id: 451, nombre: "Flower", categoria: "floristeria", horario: "Lun-Dom 8:00-17:00", imagen: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhPavULYUyznGGh9YX0Qr_RHQiWPiwvkYeferXuaVgOqe_BnByBPvb3OWkvRreSU9rv3OGBwO-qgvNcf3hpSGxhVjiPqM6vx7nAEySciZ-dKDGQpzkiRvjSfGNsYynMXBKVRfW4ilUh0O1hmJR_N5PTq6FZgp0ADdDvhPw03lKHet7SCx5wqIIev642cEM/s320/Flower.jpg", whatsapp: "593999804289", lat: null, lng: null },
 
                 // ==================== OTROS ====================
-                { id: 500, nombre: "Librería El Ateneo", categoria: "otros", horario: "Lun-Sáb 10:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Libreria", whatsapp: "54116666777" },
-                { id: 6000, nombre: "Casa de Wendy", categoria: "otros", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Casa+Wendy", whatsapp: "593000000056" }
+                { id: 500, nombre: "Librería El Ateneo", categoria: "otros", horario: "Lun-Sáb 10:00-22:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Libreria", whatsapp: "54116666777", lat: null, lng: null },
+                { id: 6000, nombre: "Casa de Wendy", categoria: "otros", horario: "Lun-Dom 18:00-00:00", imagen: "https://via.placeholder.com/150/FF6F00/ffffff?text=Casa+Wendy", whatsapp: "593000000056", lat: null, lng: null }
             ],
 
             productos: [
@@ -919,9 +935,14 @@
                 { id: 201, nombre: "Clásica", descripcion: "Carne, lechuga, tomate", tipo: "simple", precio: 5.50, localId: 2, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Burger+Clasica" },
                 { id: 101, nombre: "Muzzarella", descripcion: "Muzzarella, aceitunas", tipo: "tamaño", precioBase: 8.00, localId: 1, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Pizza+Muzza", opciones: { "Personal": 0, "Mediana": 2.50, "Grande": 5.00 } },
                 { id: 102, nombre: "Napolitana", descripcion: "Muzzarella, tomate, ajo", tipo: "tamaño", precioBase: 9.50, localId: 1, imagen: "https://via.placeholder.com/300/FF6F00/ffffff?text=Pizza+Napo", opciones: { "Personal": 0, "Mediana": 2.50, "Grande": 5.00 } },
-                // Apapear&Sweat (id 2)
-                { id: 201, nombre: "Clásica", descripcion: "Carne, lechuga, tomate", tipo: "simple", precio: 5.50, localId: 2, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Burger+Clasica" },
-                { id: 202, nombre: "Completa", descripcion: "Doble carne, cheddar, panceta", tipo: "simple", precio: 8.00, localId: 2, imagen: "https://via.placeholder.com/300/25D366/ffffff?text=Burger+Completa" },
+                // Apapear&Sweet (id 2)
+                { id: 20000, nombre: "Hamburguesa Apapear", descripcion: "Pan tostadito, carne jugosa, salsa BBQ y vegetales. Incluye papas + gaseosa", tipo: "simple", precio: 2.00, localId: 2, imagen: "https://ec.viajandox.com/uploads/min_diverse_country_publication_224.jpg" },
+				{ id: 20001, nombre: "Hamburguesa Ranchera", descripcion: "Pan tostadito, carne jugosa, chorizo, huevo, queso cheddar y vegetales. Incluye papas + gaseosa", tipo: "simple", precio: 3.50, localId: 2, imagen: "https://media-cdn.tripadvisor.com/media/photo-s/1c/8a/6b/54/hamburguesa-ranchera.jpg" },
+				{ id: 20002, nombre: "Hamburguesa Monster", descripcion: "Pan tostadito, doble carne, chorizo, huevo, tocino, queso cheddar, salsa BBQ y vegetales frescos. Incluye papas + gaseosa", tipo: "simple", precio: 5.00, localId: 2, imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQV02yPX_0ihp6H7H9OGNAFWIFyTwcdSpjiHQ&s" },
+				{ id: 20004, nombre: "Extras Hamburguesa", descripcion: "Agrega ingredientes extra", tipo: "tamaño", precioBase: 0.00, localId: 2, imagen: "https://media.istockphoto.com/id/637216704/es/foto/preparaci%C3%B3n-de-hamburguesas-con-queso.jpg?s=612x612&w=0&k=20&c=X_v-LWajZqgnJ8GgvMjqz4xK3uDlfJb_y56b4X1_oHY=", opciones: { "Carne": 1.00,"Chorizo": 0.75,"Huevo": 0.50,"Cheddar": 0.50 } },
+                { id: 20003, nombre: "Pizza en Cono", descripcion: "Pizza en cono personal", tipo: "personalizable", precioBase: 2.00, localId: 2, imagen: "https://www.clarin.com/2021/11/16/x5FN5DDPZ_1200x0__1.jpg", tamanos: { "Personal": 0 }, ingredientes: ["Jamón","Pollo","Salami","Pepperoni","Hawayana"], maxIngredientes: 1 },
+				
+
                 // Berdi Grill (id 3)
                 {id:30000,nombre:"Brochetas",descripcion:"Brochetas Berdí Grill Bar",tipo:"tamaño",precioBase:0.00,localId:3,imagen:"https://static.abc.es/media/bienestar/2020/09/14/brochetas-kI1H--1248x698@abc.jpg",opciones:{"Brocheta de Carne con Menestra y Arroz o Papas Fritas y Ensalada":2.75,"Brocheta de Pollo con Menestra y Arroz o Papas Fritas y Ensalada":2.75,"Brocheta Mixta Carne y Pollo con Menestra y Arroz o Papas Fritas y Ensalada":3.00}},
                 {id:30001,nombre:"Hamburguesas",descripcion:"Hamburguesas Berdí Grill Bar",tipo:"tamaño",precioBase:0.00,localId:3,imagen:"https://www.clarin.com/img/2021/06/17/LC25eDtCT_1200x630__1.jpg",opciones:{"Hamburguesa Clasica":2.00,"Hamburguesa Hawaiana":3.00,"Hamburguesa Tocino":3.50,"Hamburguesa Especial de la Casa":4.00}},
@@ -995,7 +1016,7 @@
                 { id: 80012, nombre: "Jugos Naturales", descripcion: "Jugos de frutas", tipo: "tamaño", precioBase: 0.00, localId: 8, imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRQt82W4nMLwEN5u_Ki3AMCvmhxuB0paPH9fg&s", opciones: { "Maracuyá": 2.50, "Limonada": 2.50, "Naranja": 2.50, "Limonada Frutos Rojos": 3.50, "Limonada de Coco": 4.50, "Coco": 3.00, "Guanábana": 2.50, "Mora": 2.50, "Piña": 2.50, "Limonada Rosa": 3.00, "Limonada Imperial": 3.00 } },
                 { id: 80013, nombre: "Cervezas", descripcion: "Cervezas nacionales e importadas", tipo: "tamaño", precioBase: 0.00, localId: 8, imagen: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTDW0gR7Gg9TJww5pgBxLOx0gFaABrYZOlTQQ&s", opciones: { "Pilsener Pequeña": 1.75, "Pilsener Grande": 2.50, "Club Pequeña": 2.00, "Club Grande": 3.00, "Corona": 4.00 } },
                 { id: 80014, nombre: "Porciones", descripcion: "Extras para acompañar", tipo: "tamaño", precioBase: 0.00, localId: 8, imagen: "https://images.aws.nestle.recipes/original/15ec26ac4aa3b2533585b8d617e2f48d_patacones-papas-camotes-patacones-1.jpg", opciones: { "Arroz": 1.50, "Chifles": 0.60, "Patacones": 1.50, "Papas": 1.50, "Maduros": 1.50, "Maduros con Queso": 3.00, "Patacón con Queso": 3.00 } },
-                // Brisa & Marea & Marea (id 9)
+                // Brisa & Marea (id 9)
                 { id: 90001, nombre: "Encebollados", descripcion: "Encebollados especiales de Brisa y Marea", tipo: "tamaño", precioBase: 0.00, localId: 9, imagen: "https://www.recetasnestle.com.ec/sites/default/files/srh_recipes/7ea4f3b2af8bb20231ff3c4f13e685ab.jpg", opciones: { "Encebollado Normal": 2.50, "Encebollado Jumbo": 4.00, "Encebollado con Camarón": 5.00, "Encebollado con Concha": 5.00, "Encebollado con Pulpo": 4.00, "Encebollado con Calamar": 4.00, "Encebollado 3 en 1": 7.00, "Encebollado Marinero": 9.00, "Encebollado Brissa": 10.00 } },
                 { id: 90002, nombre: "Sopas", descripcion: "Sopas y caldos marinos de Brisa y Marea", tipo: "tamaño", precioBase: 0.00, localId: 9, imagen: "https://www.cocina-ecuatoriana.com/base/stock/Recipe/sopa-sancocho/sopa-sancocho_web.jpg", opciones: { "Caldo de Bagre Normal": 3.00, "Caldo de Bagre con Camarón": 4.50, "Caldo de Bagre con Corvina": 5.50, "Famoso Viagra": 8.50, "Sopa Marinera": 14.00, "Parihuela": 16.00 } },
                 { id: 90003, nombre: "Brisa Kids", descripcion: "Menú infantil Brisa y Marea", tipo: "tamaño", precioBase: 0.00, localId: 9, imagen: "https://img.freepik.com/foto-gratis/cuatro-cajas-nuggets-pollo-queso-camaron-pescado-cuatro-salsas_141793-2305.jpg", opciones: { "Nuggets de Pollo": 6.00, "Salchipapa": 6.00, "Deditos de Pescado": 6.00, "Camarones Apanados": 6.00 } },
@@ -1023,7 +1044,7 @@
                 { id: 5405, nombre: "Promo Tornado", descripcion: "2 Papas torneadas", tipo: "simple", precio: 2.99, localId: 54, imagen: "https://ideogram.ai/assets/image/balanced/response/-dNFJJ2EQZaOwq7jjatKTg@2k" },
                 // Mini Donas Gema (id 20)
                 { id: 5401, nombre: "Mini Donas Normales", descripcion: "8 mini donas + 2 Salsas + 2 Topings", tipo: "simple", precio: 2.50, localId: 20, imagen: "https://ideogram.ai/assets/image/balanced/response/nTNxoPShRxym1JqhpehIoQ@2k" },
-                { id: 5402, nombre: "Mini Donas Cremosas", descripcion: "8 mini donas + Crema + Fresa + 1Toping + 1 Salsa", tipo: "simple", precio: 3.00, localId: 20, imagen: "https://ideogram.ai/assets/image/balanced/response/lM95wnliQcqWuCZaS7JkeA@2k" },
+                { id: 5402, nombre: "Mini Donas Cremosas", descripcion: "8 mini donas + Crema + Fresa + 1 Toping + 1 Salsa", tipo: "simple", precio: 3.00, localId: 20, imagen: "https://ideogram.ai/assets/image/balanced/response/lM95wnliQcqWuCZaS7JkeA@2k" },
                 { id: 5403, nombre: "Caja Grande Normal", descripcion: "18 mini donas + 2 Salsas + 4 Topings", tipo: "simple", precio: 5.00, localId: 20, imagen: "https://ideogram.ai/assets/image/balanced/response/2vaJIBulQJudDqd1U4H5Cw@2k" },
                 { id: 5404, nombre: "Caja Grande Mixta", descripcion: "18 mini donas + 2 Salsas + Crema + 4 Topings", tipo: "simple", precio: 5.50, localId: 20, imagen: "https://ideogram.ai/assets/image/balanced/response/28DMoPF8Qtivrr63v2sJMA@2k" },
                 { id: 5405, nombre: "Caja Especial", descripcion: "18 mini donas + 2 Salsas + Fresa + Crema + 2 Topings", tipo: "simple", precio: 6.00, localId: 20, imagen: "https://ideogram.ai/assets/image/balanced/response/mXD5EfaiQ1yFyApg_L7lVQ@2k" },
@@ -1082,12 +1103,14 @@
         const volverInicioGracias = document.getElementById('volver-inicio-gracias');
         const selectCategoriaMovil = document.getElementById('select-categoria-movil');
         const buscadorInput = document.getElementById('buscador-local');
-        // Modal
-        const modalEnvio = document.getElementById('modal-envio');
+        const distanciaInfo = document.getElementById('distancia-info');
+        // Modal elementos
+        const modalConfirmar = document.getElementById('modal-confirmar-envio');
+        const modalResumen = document.getElementById('modal-resumen');
+        const costoEnvioInput = document.getElementById('costo-envio-modal');
         const cerrarModal = document.getElementById('cerrar-modal');
         const cancelarEnvio = document.getElementById('cancelar-envio');
-        const confirmarEnvio = document.getElementById('confirmar-envio');
-        const costoEnvioInput = document.getElementById('costo-envio-modal');
+        const confirmarEnvioLocal = document.getElementById('confirmar-envio-local');
 
         const placeholderBase64 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%23cccccc'/%3E%3Ctext x='50%25' y='50%25' font-size='16' text-anchor='middle' dy='.3em' fill='%23333'%3EImagen%3C/text%3E%3C/svg%3E";
 
@@ -1108,6 +1131,31 @@
             }
         }
 
+        // ----- Funciones de cálculo de distancia y tarifa -----
+        function calcularDistanciaHaversine(lat1, lon1, lat2, lon2) {
+            const R = 6371; // km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function calcularDistanciaCorregida(lat1, lon1, lat2, lon2) {
+            return calcularDistanciaHaversine(lat1, lon1, lat2, lon2) * FACTOR_CORRECCION;
+        }
+
+        // Tarifa: hasta 4 km = $2.00, luego cada 0.5 km adicional = $0.25
+        function calcularTarifa(distancia) {
+            if (distancia <= 4) return 2.00;
+            const exceso = Math.ceil((distancia - 4) / 0.5);
+            return 2.00 + exceso * 0.25;
+        }
+
+        // ----- Inicialización -----
         document.addEventListener('DOMContentLoaded', () => {
             try {
                 mostrarLocales();
@@ -1198,6 +1246,12 @@
             document.querySelector('.filtro-categorias').style.display = 'none';
             document.getElementById('select-categoria-movil').style.display = 'none';
 
+            // Limpiar distancia anterior y mostrar mensaje de carga
+            distanciaInfo.innerHTML = '📍 Obteniendo tu ubicación para calcular el envío...';
+            sessionStorage.removeItem('distancia_km');
+            sessionStorage.removeItem('tarifa_envio');
+
+            // Mostrar productos
             const productos = datosGOXPRESS.productos.filter(p => p.localId === localId);
             let html = `<h2>${local.nombre}</h2><div class="productos-grid">`;
             if (productos.length === 0) {
@@ -1280,9 +1334,61 @@
             }
             html += `</div>`;
             document.getElementById('productos-local').innerHTML = html;
+
+            // ----- Solicitar ubicación y calcular distancia -----
+            if (!local.lat || !local.lng) {
+                distanciaInfo.innerHTML = '⚠️ Este local no tiene coordenadas registradas. El envío se definirá manualmente.';
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                distanciaInfo.innerHTML = '⚠️ Tu navegador no soporta geolocalización. El envío se definirá manualmente.';
+                return;
+            }
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    // Calcular distancia corregida
+                    const distancia = calcularDistanciaCorregida(userLat, userLng, local.lat, local.lng);
+                    const tarifa = calcularTarifa(distancia);
+
+                    sessionStorage.setItem('distancia_km', distancia.toFixed(2));
+                    sessionStorage.setItem('tarifa_envio', tarifa.toFixed(2));
+
+                    distanciaInfo.innerHTML = `✅ Distancia estimada: ${distancia.toFixed(2)} km - Costo de envío: $${tarifa.toFixed(2)}`;
+                },
+                (error) => {
+                    console.warn('Error obteniendo ubicación:', error);
+                    let mensaje = '⚠️ No se pudo obtener tu ubicación. ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            mensaje += 'Permiso denegado. Puedes habilitarlo en el navegador.';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            mensaje += 'Información de ubicación no disponible.';
+                            break;
+                        case error.TIMEOUT:
+                            mensaje += 'Tiempo de espera agotado.';
+                            break;
+                    }
+                    distanciaInfo.innerHTML = mensaje + ' El envío se definirá manualmente.';
+                    sessionStorage.removeItem('distancia_km');
+                    sessionStorage.removeItem('tarifa_envio');
+                },
+                options
+            );
         };
 
-        // Funciones de agregado
+        // ----- Funciones de agregado al carrito -----
         window.agregarSimple = function(id, nombre, precio, localId, descripcion = '') {
             if (carrito.length > 0 && carrito[0].localId !== localId) { alert("Solo puedes pedir de un local a la vez."); return; }
             const item = carrito.find(i => i.id === id && !i.opcion && !i.gramos && !i.tamano);
@@ -1409,6 +1515,8 @@
             document.querySelector('.filtro-categorias').style.display = 'flex';
             document.getElementById('select-categoria-movil').style.display = window.innerWidth <= 600 ? 'block' : 'none';
             mostrarLocales();
+            sessionStorage.removeItem('distancia_km');
+            sessionStorage.removeItem('tarifa_envio');
         });
 
         siguienteBtn.addEventListener('click', (e) => {
@@ -1423,18 +1531,27 @@
 
         function actualizarResumenCheckout() {
             const totalProductos = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+            const distancia = parseFloat(sessionStorage.getItem('distancia_km') || 0);
+            const tarifaEnvio = distancia ? calcularTarifa(distancia) : 0;
+            const totalGeneral = totalProductos + tarifaEnvio;
+
             let html = '<h3>📋 Resumen de tu pedido</h3>';
             carrito.forEach((item, index) => {
                 const desc = item.descripcion ? `<br><small>${item.descripcion}</small>` : '';
                 html += `<div class="item-resumen"><div class="item-info">${item.nombre} x${item.cantidad} = $${(item.precio * item.cantidad).toFixed(2)}${desc}</div><div class="item-acciones"><button class="btn-eliminar" onclick="eliminarPorIndice(${index})" title="Eliminar">🗑️</button></div></div>`;
             });
-            html += `<p style="margin-top:0.5rem;"><strong>💰 Subtotal: $${totalProductos.toFixed(2)}</strong></p>`;
-            html += `<p><em>🚚 El costo de envío será calculado por el administrador y lo podrás ingresar en el siguiente paso.</em></p>`;
+            html += `<p><strong>💰 Subtotal productos: $${totalProductos.toFixed(2)}</strong></p>`;
+            if (distancia > 0) {
+                html += `<p><strong>🚚 Envío (${distancia.toFixed(2)} km): $${tarifaEnvio.toFixed(2)}</strong></p>`;
+            } else {
+                html += `<p><em>🚚 No se pudo calcular la distancia. El costo de envío se definirá con el local.</em></p>`;
+            }
+            html += `<p><strong>💵 Total a pagar: $${totalGeneral.toFixed(2)}</strong></p>`;
 
             const metodoSelect = document.getElementById('metodo-pago');
             const opcionEfectivo = metodoSelect.querySelector('option[value="efectivo"]');
-            if (totalProductos > 30) {
-                html += `<div class="aviso-transferencia">⚠️ El subtotal supera los $30, por lo que el pago debe realizarse por transferencia bancaria al local.</div>`;
+            if (totalGeneral > 30) {
+                html += `<div class="aviso-transferencia">⚠️ El total supera los $30, por lo que el pago debe realizarse por transferencia bancaria al local.</div>`;
                 metodoSelect.value = 'transferencia';
                 opcionEfectivo.disabled = true;
             } else {
@@ -1459,9 +1576,17 @@
                 itemsPorLocal[item.localId].push(item);
             });
 
-            const pedido = { nombre, cedula, telefono: telefonoCompleto, direccion, metodoPago, itemsPorLocal, fecha: new Date().toISOString() };
-            sessionStorage.setItem('pedidoPendiente', JSON.stringify(pedido));
-            pedidoPendiente = pedido;
+            // Verificar que se haya calculado la distancia
+            const distancia = parseFloat(sessionStorage.getItem('distancia_km') || 0);
+            const tarifaEnvio = distancia ? calcularTarifa(distancia) : null;
+            if (tarifaEnvio === null) {
+                alert('No se pudo calcular la distancia de envío. Por favor, asegúrate de haber permitido la ubicación al seleccionar el local.');
+                return;
+            }
+
+            // Calcular totales
+            const subtotal = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
+            const totalGeneral = subtotal + tarifaEnvio;
 
             // Mensaje para administrador
             let mensajeAdmin = `🔔 *NUEVO PEDIDO PENDIENTE - GOXPRESS* 🔔\n\n👤 *Cliente:* ${nombre}\n🆔 *Cédula:* ${cedula}\n📞 *Teléfono:* ${telefonoCompleto}\n📍 *Dirección:* ${direccion}\n\n🛍️ *Productos solicitados:*\n`;
@@ -1474,85 +1599,112 @@
                     mensajeAdmin += `   • ${i.nombre}${desc} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}\n`;
                 });
             }
-            mensajeAdmin += `\n💳 *Método de pago:* ${metodoPago}\n\n👉 *Por favor, calcula el costo de envío y comunícalo al cliente.*\n🙏 *Gracias por tu ayuda!*`;
+            mensajeAdmin += `\n💰 *Subtotal:* $${subtotal.toFixed(2)}\n🚚 *Envío (${distancia.toFixed(2)} km):* $${tarifaEnvio.toFixed(2)}\n💵 *Total:* $${totalGeneral.toFixed(2)}\n💳 *Método de pago:* ${metodoPago}\n\n✅ *El pedido se enviará automáticamente al local.*`;
 
             window.open(`https://wa.me/${WHATSAPP_ADMIN}?text=${encodeURIComponent(mensajeAdmin)}`, '_blank');
 
-            carrito = [];
-            localStorage.removeItem('carrito');
-            actualizarContadores();
+            // Guardar datos para el modal
+            const pedidoData = {
+                nombre, cedula, telefonoCompleto, direccion, metodoPago,
+                itemsPorLocal, subtotal, distancia, tarifaEnvio, totalGeneral
+            };
+            sessionStorage.setItem('pedidoPendiente', JSON.stringify(pedidoData));
 
-            // Mostrar modal para ingresar costo de envío
-            mostrarModal();
+            // Mostrar modal para confirmar envío al local
+            mostrarModalConfirmacion(pedidoData);
         });
 
-        function mostrarModal() {
-            modalEnvio.classList.add('visible');
-            costoEnvioInput.value = '';
-            costoEnvioInput.focus();
+        function mostrarModalConfirmacion(pedido) {
+            // Mostrar resumen en el modal
+            let resumenHtml = `<p><strong>Cliente:</strong> ${pedido.nombre}</p>`;
+            resumenHtml += `<p><strong>Teléfono:</strong> ${pedido.telefonoCompleto}</p>`;
+            resumenHtml += `<p><strong>Dirección:</strong> ${pedido.direccion}</p>`;
+            resumenHtml += `<p><strong>Productos:</strong></p><ul style="margin-left:1rem;">`;
+            for (const localId in pedido.itemsPorLocal) {
+                const local = datosGOXPRESS.locales.find(l => l.id == localId);
+                resumenHtml += `<li><strong>${local.nombre}:</strong><ul>`;
+                pedido.itemsPorLocal[localId].forEach(i => {
+                    resumenHtml += `<li>${i.nombre} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}</li>`;
+                });
+                resumenHtml += `</ul></li>`;
+            }
+            resumenHtml += `</ul>`;
+            resumenHtml += `<p><strong>Subtotal:</strong> $${pedido.subtotal.toFixed(2)}</p>`;
+            resumenHtml += `<p><strong>Distancia:</strong> ${pedido.distancia.toFixed(2)} km</p>`;
+            resumenHtml += `<p><strong>Costo de envío calculado:</strong> $${pedido.tarifaEnvio.toFixed(2)}</p>`;
+            resumenHtml += `<p><strong>Total:</strong> $${pedido.totalGeneral.toFixed(2)}</p>`;
+            modalResumen.innerHTML = resumenHtml;
+
+            costoEnvioInput.value = pedido.tarifaEnvio.toFixed(2);
+            modalConfirmar.classList.add('visible');
         }
 
-        function cerrarModalYLimpiar() {
-            modalEnvio.classList.remove('visible');
+        function cerrarModalConfirmacion() {
+            modalConfirmar.classList.remove('visible');
             sessionStorage.removeItem('pedidoPendiente');
-            pedidoPendiente = null;
-            mostrarVista('inicio');
         }
 
-        confirmarEnvio.addEventListener('click', () => {
+        cerrarModal.addEventListener('click', () => {
+            cerrarModalConfirmacion();
+            mostrarVista('inicio');
+        });
+        cancelarEnvio.addEventListener('click', () => {
+            cerrarModalConfirmacion();
+            mostrarVista('inicio');
+        });
+
+        confirmarEnvioLocal.addEventListener('click', () => {
             const costoEnvio = parseFloat(costoEnvioInput.value);
             if (isNaN(costoEnvio) || costoEnvio < 0) {
                 alert('Ingresa un costo de envío válido');
                 return;
             }
-            if (!pedidoPendiente) {
+
+            const pedido = JSON.parse(sessionStorage.getItem('pedidoPendiente'));
+            if (!pedido) {
                 alert('No hay pedido pendiente');
-                cerrarModalYLimpiar();
+                cerrarModalConfirmacion();
                 return;
             }
 
-            const localIds = Object.keys(pedidoPendiente.itemsPorLocal);
-            if (localIds.length === 0) return;
-            const localId = parseInt(localIds[0]);
+            // Obtener el local (solo hay uno)
+            const localId = parseInt(Object.keys(pedido.itemsPorLocal)[0]);
             const local = datosGOXPRESS.locales.find(l => l.id === localId);
-            const items = pedidoPendiente.itemsPorLocal[localId];
-
-            const subtotalLocal = items.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
-            const totalLocal = subtotalLocal + costoEnvio;
-            const pagoNota = totalLocal > 30 ? `\n💳 *IMPORTANTE:* El total supera los $30, el pago debe realizarse por transferencia bancaria.` : '';
+            const items = pedido.itemsPorLocal[localId];
+            const totalConEnvio = pedido.subtotal + costoEnvio;
+            const pagoNota = totalConEnvio > 30 ? `\n💳 *IMPORTANTE:* El total supera los $30, el pago debe realizarse por transferencia bancaria.` : '';
 
             // Mensaje para el local
-            let mensajeLocal = `🔔 *NUEVO PEDIDO GOXPRESS - ${local.nombre}* 🔔\n\n👤 *Cliente:* ${pedidoPendiente.nombre}\n🆔 *Cédula:* ${pedidoPendiente.cedula}\n📞 *Teléfono:* ${pedidoPendiente.telefono}\n📍 *Dirección de entrega:* ${pedidoPendiente.direccion}\n\n🛍️ *Detalle del pedido:*\n`;
+            let mensajeLocal = `🔔 *NUEVO PEDIDO GOXPRESS - ${local.nombre}* 🔔\n\n👤 *Cliente:* ${pedido.nombre}\n🆔 *Cédula:* ${pedido.cedula}\n📞 *Teléfono:* ${pedido.telefonoCompleto}\n📍 *Dirección de entrega:* ${pedido.direccion}\n\n🛍️ *Detalle del pedido:*\n`;
             items.forEach(i => {
                 const desc = i.descripcion ? ` (${i.descripcion})` : '';
                 mensajeLocal += `   • ${i.nombre}${desc} x${i.cantidad} = $${(i.precio * i.cantidad).toFixed(2)}\n`;
             });
-            mensajeLocal += `\n💰 *Subtotal:* $${subtotalLocal.toFixed(2)}\n🚚 *Costo de envío:* $${costoEnvio.toFixed(2)}\n💵 *Total a pagar:* $${totalLocal.toFixed(2)}\n💳 *Método de pago:* ${pedidoPendiente.metodoPago}${pagoNota}\n\n🛵 *Un Rider de GOXPRESS pasará a recoger el pedido en 5-10 minutos. Una vez en camino, nos contactaremos para informar el estado.*\n\n✅ *¡Muchas gracias por tu colaboración!* 🙌`;
+            mensajeLocal += `\n💰 *Subtotal:* $${pedido.subtotal.toFixed(2)}\n🚚 *Costo de envío:* $${costoEnvio.toFixed(2)}\n💵 *Total a pagar:* $${totalConEnvio.toFixed(2)}\n💳 *Método de pago:* ${pedido.metodoPago}${pagoNota}\n\n🛵 *Un Rider de GOXPRESS pasará a recoger el pedido en 5-10 minutos. Una vez en camino, nos contactaremos para informar el estado.*\n\n✅ *¡Muchas gracias por tu colaboración!* 🙌`;
 
             window.open(`https://wa.me/${local.whatsapp}?text=${encodeURIComponent(mensajeLocal)}`, '_blank');
 
-            let mensajeAdminResumen = `🔔 *PEDIDO ENVIADO AL LOCAL* 🔔\n\n👤 *Cliente:* ${pedidoPendiente.nombre}\n🆔 *Cédula:* ${pedidoPendiente.cedula}\n🏪 *Local:* ${local.nombre}\n💵 *Total con envío:* $${totalLocal.toFixed(2)}\n\n✅ *El pedido ya está en proceso de preparación.*`;
-            window.open(`https://wa.me/${WHATSAPP_ADMIN}?text=${encodeURIComponent(mensajeAdminResumen)}`, '_blank');
-
+            // Limpiar carrito y datos de sesión
+            carrito = [];
+            localStorage.removeItem('carrito');
+            actualizarContadores();
             sessionStorage.removeItem('pedidoPendiente');
-            pedidoPendiente = null;
-            modalEnvio.classList.remove('visible');
+            sessionStorage.removeItem('distancia_km');
+            sessionStorage.removeItem('tarifa_envio');
+
+            // Cerrar modal y mostrar gracias
+            modalConfirmar.classList.remove('visible');
             mostrarVista('gracias');
 
-            // Recuperar el foco de la ventana principal después de abrir WhatsApp
+            // Recuperar el foco
             setTimeout(() => window.focus(), 500);
         });
-
-        cerrarModal.addEventListener('click', cerrarModalYLimpiar);
-        cancelarEnvio.addEventListener('click', cerrarModalYLimpiar);
 
         volverInicioCheckout.addEventListener('click', (e) => {
             e.preventDefault();
             if (localSeleccionadoActual) {
-                // Volver al menú del local
                 seleccionarLocal(localSeleccionadoActual);
-                // Actualizar vistaActual para que el botón siguiente se comporte bien
-                vistaActual = 'inicio'; // pero estamos en el menú, que es parte de inicio
+                vistaActual = 'inicio';
                 actualizarBotonSiguiente();
             } else {
                 mostrarVista('inicio');
@@ -1587,6 +1739,9 @@
                 document.getElementById('locales-container').classList.remove('oculto');
                 document.getElementById('local-seleccionado').style.display = 'none';
                 localSeleccionadoActual = null;
+                sessionStorage.removeItem('distancia_km');
+                sessionStorage.removeItem('tarifa_envio');
+                sessionStorage.removeItem('pedidoPendiente');
             }
             actualizarBotonSiguiente();
         }
